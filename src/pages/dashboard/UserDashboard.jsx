@@ -11,7 +11,6 @@ export default function UserDashboard() {
 
     const SERVER_URL = import.meta.env.VITE_API_URL;
 
-    // ব্যাকএন্ড থেকে ইউজারের অর্ডার ফেচ করার জন্য
     useEffect(() => {
         const fetchUserOrders = async () => {
             try {
