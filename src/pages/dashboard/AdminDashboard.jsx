@@ -11,7 +11,7 @@ import {
     ArrowRight
 } from "lucide-react";
 
-const SERVER_URL = "http://localhost:5000";
+const SERVER_URL = import.meta.env.VITE_API_URL
 
 export default function AdminDashboard() {
     const [productsCount, setProductsCount] = useState(0);

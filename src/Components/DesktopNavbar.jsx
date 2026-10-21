@@ -162,14 +162,14 @@ const DesktopNavbar = ({ navLinks, activeDropdown, setActiveDropdown }) => {
             {/* Action Icons */}
             <div className="flex items-center gap-3 lg:gap-4">
                 {/* Theme Toggle */}
-                {/* <button
+                <button
                     type="button"
                     onClick={toggleTheme}
                     aria-label="Toggle theme"
                     className="rounded-full p-2 text-gray-300 transition hover:bg-[#1a2922] hover:text-[#10B981]"
                 >
                     {theme === "dark" ? <Sun size={21} /> : <Moon size={21} />}
-                </button> */}
+                </button>
 
                 {/* Wishlist */}
                 <Link

@@ -1,4 +1,3 @@
-
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function ProductPagination({
@@ -17,10 +16,10 @@ export default function ProductPagination({
     );
 
     const buttonClass =
-        "inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#22332a] dark:bg-[#0d1411] dark:text-gray-300";
+        "inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 shadow-sm";
 
     return (
-        <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm dark:border-[#22332a] dark:bg-[#121816] sm:flex-row sm:px-6">
+        <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:px-6">
             <p className="text-xs text-gray-500">
                 Showing <strong>{startResult}</strong> to{" "}
                 <strong>{endResult}</strong> of{" "}
@@ -46,9 +45,9 @@ export default function ProductPagination({
                             key={page}
                             onClick={() => setCurrentPage(page)}
                             aria-current={currentPage === page ? "page" : undefined}
-                            className={`h-8 w-8 rounded-lg text-xs font-bold ${currentPage === page
-                                    ? "bg-[#10B981] text-white"
-                                    : "border border-gray-200 text-gray-600 dark:border-[#22332a] dark:text-gray-300"
+                            className={`h-8 w-8 rounded-xl text-xs font-bold transition shadow-sm ${currentPage === page
+                                    ? "bg-[#10B981] text-white shadow-md shadow-[#10B981]/20"
+                                    : "border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                 }`}
                         >
                             {page}

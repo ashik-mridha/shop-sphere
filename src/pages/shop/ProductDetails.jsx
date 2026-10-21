@@ -13,7 +13,7 @@ import {
     RefreshCw,
 } from "lucide-react";
 
-const SERVER_URL = "http://localhost:5000";
+const SERVER_URL = import.meta.env.VITE_API_URL
 const CART_KEY = "shopsphere_cart";
 
 export default function ProductDetails() {

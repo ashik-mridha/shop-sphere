@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-const SERVER_URL = "http://localhost:5000";
+const SERVER_URL = import.meta.env.VITE_API_URL;
 
 export default function MyOrdersPage() {
     const [orders, setOrders] = useState([]);
@@ -74,7 +74,7 @@ export default function MyOrdersPage() {
     });
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 text-gray-800">
             {/* Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -86,15 +86,15 @@ export default function MyOrdersPage() {
 
                 <button
                     onClick={fetchMyOrders}
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 shadow-sm"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 shadow-sm"
                 >
-                    <RefreshCw size={16} className={loading ? "animate-spin text-emerald-600" : ""} />
+                    <RefreshCw size={16} className={loading ? "animate-spin text-[#10B981]" : ""} />
                     Refresh
                 </button>
             </div>
 
             {/* Filter & Search Bar */}
-            <div className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 {/* Search Input */}
                 <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -103,7 +103,7 @@ export default function MyOrdersPage() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search by Order ID or Product..."
-                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-emerald-600 focus:bg-white focus:outline-none"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-[#10B981] focus:bg-white focus:outline-none transition"
                     />
                 </div>
 
@@ -114,8 +114,8 @@ export default function MyOrdersPage() {
                             key={status}
                             onClick={() => setSelectedStatus(status)}
                             className={`cursor-pointer whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold capitalize transition ${selectedStatus === status
-                                    ? "bg-emerald-700 text-white shadow-sm"
-                                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                                    ? "bg-[#10B981] text-white shadow-md shadow-[#10B981]/20"
+                                    : "border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                 }`}
                         >
                             {status}
@@ -125,10 +125,10 @@ export default function MyOrdersPage() {
             </div>
 
             {/* Orders Table / Cards */}
-            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20">
-                        <Loader2 className="animate-spin text-emerald-700" size={36} />
+                        <Loader2 className="animate-spin text-[#10B981]" size={36} />
                         <p className="mt-3 text-sm text-gray-500">Loading your orders...</p>
                     </div>
                 ) : filteredOrders.length === 0 ? (
@@ -140,7 +140,7 @@ export default function MyOrdersPage() {
                         </p>
                         <Link
                             to="/shop"
-                            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
+                            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#10B981] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#0d9668]"
                         >
                             <ShoppingBag size={18} />
                             Start Shopping
@@ -149,7 +149,7 @@ export default function MyOrdersPage() {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[700px] text-left text-sm text-gray-600">
-                            <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
+                            <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-200">
                                 <tr>
                                     <th className="px-6 py-4">Order ID</th>
                                     <th className="px-6 py-4">Product</th>
@@ -166,7 +166,7 @@ export default function MyOrdersPage() {
                                     const total = Number(order.total || order.totalPrice || order.amount || 0);
 
                                     return (
-                                        <tr key={id} className="transition hover:bg-gray-50/60">
+                                        <tr key={id} className="transition hover:bg-gray-50/80">
                                             {/* Order ID */}
                                             <td className="px-6 py-4 font-semibold text-gray-900">
                                                 #{shortId}
@@ -179,15 +179,15 @@ export default function MyOrdersPage() {
                                                         <img
                                                             src={order.productImage}
                                                             alt={order.productTitle || "Product"}
-                                                            className="h-10 w-10 rounded-lg object-cover border border-gray-100"
+                                                            className="h-10 w-10 rounded-lg object-cover border border-gray-200"
                                                         />
                                                     ) : (
-                                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 font-bold">
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-[#10B981] font-bold">
                                                             <Package size={20} />
                                                         </div>
                                                     )}
                                                     <div>
-                                                        <p className="line-clamp-1 max-w-[200px] font-medium text-gray-900">
+                                                        <p className="line-clamp-1 max-w-[200px] font-medium text-gray-800">
                                                             {order.productTitle || "Shop Product"}
                                                         </p>
                                                         <p className="text-xs text-gray-500">
@@ -209,7 +209,7 @@ export default function MyOrdersPage() {
                                             </td>
 
                                             {/* Total */}
-                                            <td className="px-6 py-4 font-bold text-emerald-700">
+                                            <td className="px-6 py-4 font-bold text-[#10B981]">
                                                 ${total.toFixed(2)}
                                             </td>
 
@@ -228,7 +228,7 @@ export default function MyOrdersPage() {
                                             <td className="px-6 py-4 text-right">
                                                 <Link
                                                     to={`/track-order/${id}`}
-                                                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-[#10B981] transition hover:bg-emerald-100"
                                                 >
                                                     Track Order
                                                     <ExternalLink size={14} />

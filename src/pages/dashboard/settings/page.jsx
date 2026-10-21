@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Plus, Package } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
@@ -9,7 +8,7 @@ import ProductSearchFilter from "./ProductSearchFilter";
 import ProductPagination from "./ProductPagination";
 
 const ITEMS_PER_PAGE = 5;
-const SERVER_URL = "http://localhost:5000";
+const SERVER_URL = import.meta.env.VITE_API_URL;
 
 const EMPTY_PRODUCT = {
     title: "",
@@ -52,7 +51,7 @@ export default function AdminSettings() {
             setProducts(data);
         } catch (error) {
             console.error("Fetch products error:", error);
-            toast.error("Products load হয়নি। Backend server check করো।");
+            toast.error("Products load হয়নি। Backend server check করো।");
         } finally {
             setLoading(false);
         }
@@ -106,17 +105,16 @@ export default function AdminSettings() {
             await fetchProducts();
         } catch (error) {
             console.error("Add product error:", error);
-            toast.error("Product add হয়নি। Backend/API check করো।", {
+            toast.error("Product add হয়নি। Backend/API check করো।", {
                 id: loadingToast,
             });
         }
     };
 
     // Delete product
-
     const handleDeleteProduct = async (id) => {
         if (!id) {
-            toast.error("Product ID পাওয়া যায়নি!");
+            toast.error("Product ID পাওয়া যায়নি!");
             return;
         }
 
@@ -130,7 +128,7 @@ export default function AdminSettings() {
 
         try {
             const res = await fetch(
-                `http://localhost:5000/api/products/${id}`,
+                `${SERVER_URL}/api/products/${id}`,
                 {
                     method: "DELETE",
                 }
@@ -157,7 +155,6 @@ export default function AdminSettings() {
             });
         }
     };
-
 
     // Update product price
     const handleUpdatePrice = async (id) => {
@@ -199,7 +196,7 @@ export default function AdminSettings() {
             });
         } catch (error) {
             console.error("Update price error:", error);
-            toast.error("Price update হয়নি।", {
+            toast.error("Price update হয়নি।", {
                 id: loadingToast,
             });
         }
@@ -247,25 +244,32 @@ export default function AdminSettings() {
     }, [filteredProducts, currentPage]);
 
     return (
-        <div className="mx-auto max-w-6xl p-6 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-6xl space-y-6 text-gray-800">
             <Toaster position="top-right" reverseOrder={false} />
 
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="flex items-center gap-2 text-2xl font-bold">
-                    <Package className="text-[#10B981]" />
-                    Admin Settings - Product Management
-                </h1>
+            {/* Header */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+                        <Package className="text-[#10B981]" />
+                        Product Management
+                    </h1>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Add, search, edit prices, and manage inventory products.
+                    </p>
+                </div>
 
                 <button
                     type="button"
                     onClick={() => setShowAddCard((prev) => !prev)}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-[#10B981] px-4 py-2 font-medium text-white shadow-md transition hover:bg-[#0d9668]"
+                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#10B981] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#0d9668]"
                 >
                     <Plus size={18} />
                     {showAddCard ? "Close Form" : "Add Product"}
                 </button>
             </div>
 
+            {/* Add Product Card */}
             {showAddCard && (
                 <AddProductCard
                     newProduct={newProduct}
@@ -275,6 +279,7 @@ export default function AdminSettings() {
                 />
             )}
 
+            {/* Search and Category Filter */}
             <ProductSearchFilter
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -282,6 +287,7 @@ export default function AdminSettings() {
                 setSelectedCategory={setSelectedCategory}
             />
 
+            {/* Products Table */}
             <ManageProductsTable
                 products={paginatedProducts}
                 loading={loading}
@@ -293,6 +299,7 @@ export default function AdminSettings() {
                 handleDeleteProduct={handleDeleteProduct}
             />
 
+            {/* Pagination */}
             <ProductPagination
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}

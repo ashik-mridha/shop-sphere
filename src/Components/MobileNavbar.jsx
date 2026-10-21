@@ -48,14 +48,14 @@ const MobileNavbar = () => {
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
                 {/* Theme Toggle */}
-                {/* <button
+                <button
                     type="button"
                     onClick={toggleTheme}
                     aria-label="Toggle theme"
                     className="rounded-full p-2 text-gray-300 transition hover:bg-[#1a2922] hover:text-[#10B981]"
                 >
                     {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-                </button> */}
+                </button>
 
                 {/* Show Login only when logged out */}
                 {!isPending && !session && (
