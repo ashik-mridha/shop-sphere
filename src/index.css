@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ডিফল্ট (লাইট মোড) স্টাইল */
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #ffffff;
+    color: #1f2937;
+    transition-property: color, background-color, border-color;
+    transition-duration: 300ms;
+}
+
+/* ডার্ক মোড চালু হলে এই স্টাইলগুলো কাজ করবে */
+.dark body {
+    background-color: #121614;
+    color: #f3f4f6;
+}
