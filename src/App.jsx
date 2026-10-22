@@ -7,9 +7,9 @@ import DashboardLayout from "./layouts/DashboardLayout";
 // Protected Route Guard
 import ProtectedRoute from "./routes/ProtectedRoute";
 
-// Auth Pages
+// Auth Pages & OAuth Callback
 import LoginPage from "./auth/login/page";
-import RegisterPage from "./auth/register/page";
+import RegisterPage from "./auth/register/page";// Auth callback handler
 
 // Dashboard Pages
 import AdminSettings from "./pages/dashboard/settings/page";
@@ -34,6 +34,7 @@ import AdminOrdersPage from "./pages/dashboard/orders/AdminOrdersPage";
 import MyOrdersPage from "./pages/dashboard/orders/MyOrdersPage";
 import WishlistPage from "./pages/dashboard/wishlist/page";
 import MyProfilePage from "./pages/dashboard/profile/page";
+import AuthCallback from "./auth/AuthCallback";
 
 function Placeholder({ title }) {
   return (
@@ -64,7 +65,8 @@ export default function App() {
 
           {/* LOGGED IN USER PROTECTED ROUTES */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/checkout/:id" element={<CheckoutPage />} />// Dynamic ID সহ রাউট
+            {/* Dynamic ID সহ রাউট */}
+            <Route path="/checkout/:id" element={<CheckoutPage />} />
             <Route path="/track-order/:id" element={<TrackOrderPage />} />
 
             <Route path="/track-order" element={<TrackOrderPage />} />
@@ -78,6 +80,9 @@ export default function App() {
         {/* AUTHENTICATION ROUTES */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* OAUTH (GOOGLE) REDIRECT & ROLE VERIFICATION ROUTE */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* USER DASHBOARD */}
         <Route element={<ProtectedRoute allowedRole="user" />}>
@@ -93,7 +98,7 @@ export default function App() {
 
         {/* ADMIN DASHBOARD */}
         <Route element={<ProtectedRoute allowedRole="admin" />}>
-          <Route path="/admin" element={<DashboardLayout role="admin" />}>
+          <Route path="/admin" element={<DashboardLayout role="admin" />} >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="products" element={<AdminSettings />} />

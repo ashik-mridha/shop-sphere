@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { User, Mail, Lock, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { authClient } from "../../lib/auth-client";
@@ -13,9 +13,20 @@ export default function RegisterPage() {
     const [googleLoading, setGoogleLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const navigate = useNavigate();
     const { startLoading, stopLoading } = useGlobalLoading();
 
+    // Role অনুযায়ী হার্ড রিডাইরেক্ট (Window Location)
+    const redirectByRole = (user) => {
+        const userRole = String(user?.role || "").toLowerCase();
+
+        if (userRole === "admin") {
+            window.location.href = "/admin/dashboard";
+        } else {
+            window.location.href = "/user/dashboard";
+        }
+    };
+
+    // Email/Password Registration Handler
     const handleRegister = async (e) => {
         e.preventDefault();
 
@@ -31,7 +42,6 @@ export default function RegisterPage() {
                 name: name.trim(),
                 email: email.trim(),
                 password,
-                callbackURL: "/user/dashboard",
             });
 
             if (response?.error) {
@@ -44,36 +54,18 @@ export default function RegisterPage() {
                 return;
             }
 
-            let sessionResult = null;
+            toast.success("Account created successfully!");
 
-            try {
-                sessionResult = await authClient.getSession();
-            } catch (sessionError) {
-                console.error(
-                    "Could not verify registration session:",
-                    sessionError
-                );
-            }
+            // সেশন ডাটা সাথে সাথে ফেচ করা
+            const sessionResult = await authClient.getSession();
+            const user = sessionResult?.data?.user || response?.data?.user;
 
-            if (sessionResult?.data?.user) {
-                toast.success("Account created successfully!");
-
-                const role = sessionResult.data.user.role;
-
-                if (role === "admin") {
-                    navigate("/admin/dashboard", { replace: true });
-                } else {
-                    navigate("/user/dashboard", { replace: true });
-                }
+            if (user) {
+                // সেশন ও রোল পাওয়া গেলে ড্যাশবোর্ডে রিডাইরেক্ট
+                redirectByRole(user);
             } else {
-                toast.success(
-                    "Account created successfully! Please sign in."
-                );
-
-                navigate("/login", {
-                    replace: true,
-                    state: { registered: true },
-                });
+                // সেশন তৈরি না হয়ে থাকলে সরাসরি লগইন পেজে পাঠাবে
+                window.location.href = "/login";
             }
         } catch (err) {
             console.error("Registration failed:", err);
@@ -90,6 +82,7 @@ export default function RegisterPage() {
         }
     };
 
+    // Google OAuth Register Handler
     const handleGoogleRegister = async () => {
         if (loading || googleLoading) return;
 
@@ -99,23 +92,11 @@ export default function RegisterPage() {
         const taskId = startLoading("Connecting to Google...");
 
         try {
-            const response = await authClient.signIn.social({
+            await authClient.signIn.social({
                 provider: "google",
-                callbackURL: "/user/dashboard",
+                callbackURL: "/auth/callback", // রোল ভেরিফিকেশনের জন্য Callback রাউট
                 errorCallbackURL: "/register",
             });
-
-            if (response?.error) {
-                const message =
-                    response.error.message ||
-                    "Google registration failed. Please try again.";
-
-                setError(message);
-                toast.error(message);
-
-                stopLoading(taskId);
-                setGoogleLoading(false);
-            }
         } catch (err) {
             console.error("Google registration failed:", err);
 
@@ -144,6 +125,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="rounded-2xl border border-[#22332a] bg-[#121816] p-8 shadow-xl">
+                    {/* Google Register Button */}
                     <button
                         onClick={handleGoogleRegister}
                         type="button"
@@ -173,6 +155,7 @@ export default function RegisterPage() {
                         </div>
                     </div>
 
+                    {/* Email/Password Register Form */}
                     <form onSubmit={handleRegister} className="space-y-5">
                         {error && (
                             <div
@@ -187,13 +170,11 @@ export default function RegisterPage() {
                             <label className="mb-1.5 block text-sm text-gray-400">
                                 Full Name
                             </label>
-
                             <div className="relative">
                                 <User
                                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                     size={18}
                                 />
-
                                 <input
                                     type="text"
                                     value={name}
@@ -211,13 +192,11 @@ export default function RegisterPage() {
                             <label className="mb-1.5 block text-sm text-gray-400">
                                 Email
                             </label>
-
                             <div className="relative">
                                 <Mail
                                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                     size={18}
                                 />
-
                                 <input
                                     type="email"
                                     value={email}
@@ -235,13 +214,11 @@ export default function RegisterPage() {
                             <label className="mb-1.5 block text-sm text-gray-400">
                                 Password
                             </label>
-
                             <div className="relative">
                                 <Lock
                                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                     size={18}
                                 />
-
                                 <input
                                     type="password"
                                     value={password}
@@ -254,7 +231,6 @@ export default function RegisterPage() {
                                     placeholder="Minimum 8 characters"
                                 />
                             </div>
-
                             <p className="mt-1 text-xs text-gray-500">
                                 Password must be at least 8 characters.
                             </p>
@@ -268,10 +244,7 @@ export default function RegisterPage() {
                             {loading && (
                                 <Loader2 className="animate-spin" size={20} />
                             )}
-
-                            {loading
-                                ? "Creating account..."
-                                : "Create Account"}
+                            {loading ? "Creating account..." : "Create Account"}
                         </button>
                     </form>
 
@@ -292,14 +265,10 @@ export default function RegisterPage() {
 
 function GoogleIcon() {
     return (
-        <svg
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-        >
+        <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
             <path
                 fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
             />
             <path
                 fill="#34A853"

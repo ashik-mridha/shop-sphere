@@ -6,21 +6,32 @@ export default function ProtectedRoute({ allowedRole }) {
     const { data: session, isPending } = authClient.useSession();
     const location = useLocation();
 
+    // ১. সেশন লোড হওয়া পর্যন্ত ওয়েট করা
     if (isPending) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-[#0a0f0d]">
-                {/* routs protect */}
                 <Loader2 className="animate-spin text-[#10B981]" size={40} />
             </div>
         );
     }
 
-    if (!session) {
+    // ২. সেশন না থাকলে সরাসরি লগইন পেজে রিডাইরেক্ট
+    if (!session || !session.user) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (allowedRole && session.user?.role !== allowedRole) {
-        return <Navigate to="/" replace />;
+    // ৩. ইউজারের রোল ফরম্যাট সেফ করা (Case-insensitive conversion)
+    const userRole = String(session.user.role || "user").toLowerCase();
+    const requiredRole = allowedRole ? String(allowedRole).toLowerCase() : null;
+
+    // ৪. রোল অমিল হলে সঠিক ড্যাশবোর্ডে রিডাইরেক্ট
+    if (requiredRole && userRole !== requiredRole) {
+        // যদি সে Admin হয় কিন্তু User পেজে ঢুকতে চায় -> Admin Dashboard-এ যাবে
+        if (userRole === "admin") {
+            return <Navigate to="/admin/dashboard" replace />;
+        }
+        // যদি সে সাধারণ User হয় কিন্তু Admin পেজে ঢুকতে চায় -> User Dashboard-এ যাবে
+        return <Navigate to="/user/dashboard" replace />;
     }
 
     return <Outlet />;

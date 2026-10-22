@@ -54,22 +54,6 @@ export default function UserDashboard() {
         },
     ];
 
-    // Status Badge Styling Function
-    const getStatusBadgeClass = (status) => {
-        switch (String(status).toLowerCase()) {
-            case "delivered":
-                return "bg-emerald-50 text-emerald-700 border-emerald-200";
-            case "shipped":
-                return "bg-blue-50 text-blue-700 border-blue-200";
-            case "processing":
-                return "bg-amber-50 text-amber-700 border-amber-200";
-            case "cancelled":
-                return "bg-red-50 text-red-700 border-red-200";
-            default:
-                return "bg-purple-50 text-purple-700 border-purple-200";
-        }
-    };
-
     return (
         <div className="space-y-8 text-gray-800">
             {/* Header Section */}
@@ -123,82 +107,7 @@ export default function UserDashboard() {
                     </div>
                 ))}
             </section>
-
-            {/* Recent Orders Section */}
-            <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-gray-200 p-5 sm:p-6">
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-900">Recent Orders</h2>
-                        <p className="mt-0.5 text-xs text-gray-500">Your latest purchases and status</p>
-                    </div>
-                    <Link
-                        to="/user/orders"
-                        className="flex items-center gap-1.5 text-sm font-semibold text-[#10B981] transition hover:text-[#0d9668]"
-                    >
-                        View all <ArrowRight size={16} />
-                    </Link>
-                </div>
-
-                <div className="overflow-x-auto">
-                    {loadingOrders ? (
-                        <div className="flex flex-col items-center justify-center py-12">
-                            <Loader2 className="animate-spin text-[#10B981]" size={32} />
-                            <p className="mt-2 text-xs text-gray-500">Loading your orders...</p>
-                        </div>
-                    ) : orders.length === 0 ? (
-                        <div className="py-12 text-center text-sm text-gray-500">
-                            No recent orders found.
-                        </div>
-                    ) : (
-                        <table className="w-full min-w-[550px] text-left text-sm text-gray-600">
-                            <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                                <tr>
-                                    <th className="px-6 py-4">Order ID</th>
-                                    <th className="px-6 py-4">Date</th>
-                                    <th className="px-6 py-4">Amount</th>
-                                    <th className="px-6 py-4">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {orders.slice(0, 5).map((order) => {
-                                    const id = order._id || order.id;
-                                    const shortId = String(id).slice(-8).toUpperCase();
-                                    const total = Number(order.total || order.totalPrice || order.amount || 0);
-
-                                    return (
-                                        <tr key={id} className="transition hover:bg-gray-50/80">
-                                            <td className="px-6 py-4 font-semibold text-gray-900">
-                                                #{shortId}
-                                            </td>
-                                            <td className="px-6 py-4 text-xs text-gray-500">
-                                                {order.createdAt
-                                                    ? new Date(order.createdAt).toLocaleDateString("en-US", {
-                                                        year: "numeric",
-                                                        month: "short",
-                                                        day: "numeric",
-                                                    })
-                                                    : order.date || "N/A"}
-                                            </td>
-                                            <td className="px-6 py-4 font-bold text-[#10B981]">
-                                                ${total.toFixed(2)}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span
-                                                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold capitalize ${getStatusBadgeClass(
-                                                        order.status || "Pending"
-                                                    )}`}
-                                                >
-                                                    {order.status || "Pending"}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            </section>
+            
         </div>
     );
 }

@@ -15,6 +15,7 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const { startLoading, stopLoading } = useGlobalLoading();
 
+    // Role অনুযায়ী রিডাইরেক্ট করার ফাংশন
     const redirectByRole = (user) => {
         const userRole = String(user?.role || "").toLowerCase();
 
@@ -25,6 +26,7 @@ export default function LoginPage() {
         }
     };
 
+    // Email/Password Login Handler
     const handleEmailLogin = async (e) => {
         e.preventDefault();
 
@@ -42,47 +44,38 @@ export default function LoginPage() {
             });
 
             if (response?.error) {
-                const message =
-                    response.error.message ||
-                    "Login failed. Please try again.";
-
+                const message = response.error?.message || "Login failed.";
                 setError(message);
                 toast.error(message);
                 return;
             }
 
+            toast.success("Login successful!");
+
+            // ১. সেশন আপডেট হওয়ার জন্য এক মুহূর্ত অপেক্ষা করুন
             const sessionResult = await authClient.getSession();
+            const user = sessionResult?.data?.user || response?.data?.user;
 
-            const user =
-                sessionResult?.data?.user ||
-                response?.data?.user;
+            const role = String(user?.role || "").toLowerCase();
 
-            if (!user) {
-                const message =
-                    "Session could not be verified. Please try again.";
-
-                setError(message);
-                toast.error(message);
-                return;
+            // ২. window.location.href দিয়ে নিশ্চিত রিডাইরেক্ট করুন
+            if (role === "admin") {
+                window.location.href = "/admin/dashboard";
+            } else {
+                window.location.href = "/user/dashboard";
             }
 
-            toast.success("Login successful! Welcome back.");
-            redirectByRole(user);
         } catch (err) {
             console.error("Login failed:", err);
-
-            const message =
-                err?.message ||
-                "Something went wrong. Please try again.";
-
-            setError(message);
-            toast.error(message);
+            setError(err?.message || "Login failed.");
+            toast.error("Something went wrong.");
         } finally {
             stopLoading(taskId);
             setLoading(false);
         }
     };
 
+    // Google OAuth Login Handler
     const handleGoogleLogin = async () => {
         if (loading || googleLoading) return;
 
@@ -92,24 +85,11 @@ export default function LoginPage() {
         const taskId = startLoading("Connecting to Google...");
 
         try {
-            // Better Auth-এর নিয়মে সোশাল সাইন-ইনের জন্য শুধু provider পাস করলেই যথেষ্ট, 
-            // এটি স্বয়ংক্রিয়ভাবে ব্যাকএন্ডের সাথে যোগাযোগ করে সঠিক কলব্যাক হ্যান্ডেল করে।
-            const response = await authClient.signIn.social({
+            await authClient.signIn.social({
                 provider: "google",
-                callbackURL: "/user/dashboard", // সফল লগইনের পর রিডাইরেক্ট পাথ
+                callbackURL: "/auth/callback", // রোল ভেরিফিকেশন রাউট
                 errorCallbackURL: "/login",
             });
-
-            if (response?.error) {
-                const message =
-                    response.error.message ||
-                    "Google login failed. Please try again.";
-
-                setError(message);
-                toast.error(message);
-                stopLoading(taskId);
-                setGoogleLoading(false);
-            }
         } catch (err) {
             console.error("Google login failed:", err);
 
@@ -131,13 +111,13 @@ export default function LoginPage() {
                     <h1 className="text-3xl font-bold text-white">
                         Welcome Back
                     </h1>
-
                     <p className="mt-2 text-gray-400">
                         Sign in to your ShopSphere account
                     </p>
                 </div>
 
                 <div className="rounded-2xl border border-[#22332a] bg-[#121816] p-8 shadow-xl">
+                    {/* Google Login Button */}
                     <button
                         onClick={handleGoogleLogin}
                         type="button"
@@ -167,10 +147,8 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <form
-                        onSubmit={handleEmailLogin}
-                        className="space-y-5"
-                    >
+                    {/* Email/Password Login Form */}
+                    <form onSubmit={handleEmailLogin} className="space-y-5">
                         {error && (
                             <div
                                 role="alert"
@@ -184,19 +162,15 @@ export default function LoginPage() {
                             <label className="mb-1.5 block text-sm text-gray-400">
                                 Email
                             </label>
-
                             <div className="relative">
                                 <Mail
                                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                     size={18}
                                 />
-
                                 <input
                                     type="email"
                                     value={email}
-                                    onChange={(e) =>
-                                        setEmail(e.target.value)
-                                    }
+                                    onChange={(e) => setEmail(e.target.value)}
                                     autoComplete="email"
                                     required
                                     disabled={loading || googleLoading}
@@ -210,19 +184,15 @@ export default function LoginPage() {
                             <label className="mb-1.5 block text-sm text-gray-400">
                                 Password
                             </label>
-
                             <div className="relative">
                                 <Lock
                                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                     size={18}
                                 />
-
                                 <input
                                     type="password"
                                     value={password}
-                                    onChange={(e) =>
-                                        setPassword(e.target.value)
-                                    }
+                                    onChange={(e) => setPassword(e.target.value)}
                                     autoComplete="current-password"
                                     required
                                     disabled={loading || googleLoading}
@@ -238,12 +208,8 @@ export default function LoginPage() {
                             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#10B981] py-3 font-semibold text-white transition hover:bg-[#0d9668] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading && (
-                                <Loader2
-                                    className="animate-spin"
-                                    size={20}
-                                />
+                                <Loader2 className="animate-spin" size={20} />
                             )}
-
                             {loading ? "Signing in..." : "Sign In"}
                         </button>
                     </form>
@@ -265,11 +231,7 @@ export default function LoginPage() {
 
 function GoogleIcon() {
     return (
-        <svg
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-        >
+        <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
             <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
