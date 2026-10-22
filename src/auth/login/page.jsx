@@ -87,9 +87,9 @@ export default function LoginPage() {
         try {
             await authClient.signIn.social({
                 provider: "google",
-                // এখানে সরাসরি আপনার ফ্রন্টএন্ডের ড্যাশবোর্ড পাথ দিন, /auth/callback নয়
-                callbackURL: "/user/dashboard",
-                errorCallbackURL: "/login",
+                // window.location.origin use korle automatic frontend URL (localhost ba Vercel live domain) niye nibe
+                callbackURL: `${window.location.origin}/user/dashboard`,
+                errorCallbackURL: `${window.location.origin}/login`,
             });
         } catch (err) {
             console.error("Google login failed:", err);

@@ -84,7 +84,6 @@ export default function RegisterPage() {
 
     // Google OAuth Register Handler
     const handleGoogleRegister = async () => {
-        // আপনার স্টেট নামের সাথে মিলিয়ে এখানে googleLoading ব্যবহার করা হয়েছে
         if (loading || googleLoading) return;
 
         setGoogleRegister(true);
@@ -95,13 +94,13 @@ export default function RegisterPage() {
         try {
             await authClient.signIn.social({
                 provider: "google",
-                // সরাসরি ফ্রন্টএন্ডের ড্যাশবোর্ড বা আপনার পছন্দমতো রিডাইরেক্ট পাথ
-                callbackURL: "/user/dashboard",
-                errorCallbackURL: "/login",
+                // window.location.origin ব্যবহার করায় এটি সরাসরি ফ্রন্টএন্ড লাইভ ডোমেন বা লোকালহোস্টে ফিরে আসবে
+                callbackURL: `${window.location.origin}/user/dashboard`,
+                errorCallbackURL: `${window.location.origin}/register`,
             });
         } catch (err) {
-            console.error("Google login failed:", err);
-            const message = err?.message || "Google login failed. Please try again.";
+            console.error("Google registration failed:", err);
+            const message = err?.message || "Google registration failed. Please try again.";
             setError(message);
             toast.error(message);
             stopLoading(taskId);
