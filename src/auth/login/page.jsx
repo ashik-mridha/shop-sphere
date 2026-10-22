@@ -16,6 +16,16 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const { startLoading, stopLoading } = useGlobalLoading();
 
+    const redirectByRole = (user) => {
+        const userRole = String(user?.role || "").toLowerCase();
+
+        if (userRole === "admin") {
+            navigate("/admin/dashboard", { replace: true });
+        } else {
+            navigate("/user/dashboard", { replace: true });
+        }
+    };
+
     const handleEmailLogin = async (e) => {
         e.preventDefault();
 
@@ -42,30 +52,23 @@ export default function LoginPage() {
                 return;
             }
 
-            // Read the session after successful sign-in.
             const sessionResult = await authClient.getSession();
+
             const user =
                 sessionResult?.data?.user ||
                 response?.data?.user;
 
             if (!user) {
                 const message =
-                    "Login response received, but session could not be verified. Please try again.";
+                    "Session could not be verified. Please try again.";
 
                 setError(message);
                 toast.error(message);
                 return;
             }
 
-            const userRole = String(user.role || "").toLowerCase();
-
             toast.success("Login successful! Welcome back.");
-
-            if (userRole === "admin") {
-                navigate("/admin/dashboard", { replace: true });
-            } else {
-                navigate("/user/dashboard", { replace: true });
-            }
+            redirectByRole(user);
         } catch (err) {
             console.error("Login failed:", err);
 
@@ -92,7 +95,7 @@ export default function LoginPage() {
         try {
             const response = await authClient.signIn.social({
                 provider: "google",
-                callbackURL: `${ window.location.origin } /user/dashboard`,
+                callbackURL: `${ window.location.origin } /auth/callback`,
                 errorCallbackURL: `${ window.location.origin }/login`,
             });
 
@@ -103,6 +106,7 @@ if (response?.error) {
 
     setError(message);
     toast.error(message);
+
     stopLoading(taskId);
     setGoogleLoading(false);
 }

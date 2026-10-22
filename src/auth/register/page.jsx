@@ -45,7 +45,6 @@ export default function RegisterPage() {
                 return;
             }
 
-            // Verify whether registration also created a session.
             let sessionResult = null;
 
             try {
@@ -60,7 +59,13 @@ export default function RegisterPage() {
             if (sessionResult?.data?.user) {
                 toast.success("Account created successfully!");
 
-                navigate("/user/dashboard", { replace: true });
+                const role = sessionResult.data.user.role;
+
+                if (role === "admin") {
+                    navigate("/admin/dashboard", { replace: true });
+                } else {
+                    navigate("/user/dashboard", { replace: true });
+                }
             } else {
                 toast.success(
                     "Account created successfully! Please sign in."
@@ -113,7 +118,8 @@ if (response?.error) {
     setGoogleLoading(false);
 }
 
-            // On success, Better Auth redirects the browser to Google.
+            // On successful OAuth initiation, Better Auth redirects
+            // the browser to Google. Do not navigate manually here.
         } catch (err) {
     console.error("Google registration failed:", err);
 
@@ -163,6 +169,7 @@ return (
                     <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-[#22332a]" />
                     </div>
+
                     <div className="relative flex justify-center text-sm">
                         <span className="bg-[#121816] px-3 text-gray-500">
                             or register with email
@@ -184,11 +191,13 @@ return (
                         <label className="mb-1.5 block text-sm text-gray-400">
                             Full Name
                         </label>
+
                         <div className="relative">
                             <User
                                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                 size={18}
                             />
+
                             <input
                                 type="text"
                                 value={name}
@@ -206,11 +215,13 @@ return (
                         <label className="mb-1.5 block text-sm text-gray-400">
                             Email
                         </label>
+
                         <div className="relative">
                             <Mail
                                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                 size={18}
                             />
+
                             <input
                                 type="email"
                                 value={email}
@@ -228,11 +239,13 @@ return (
                         <label className="mb-1.5 block text-sm text-gray-400">
                             Password
                         </label>
+
                         <div className="relative">
                             <Lock
                                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
                                 size={18}
                             />
+
                             <input
                                 type="password"
                                 value={password}
@@ -245,6 +258,7 @@ return (
                                 placeholder="Minimum 8 characters"
                             />
                         </div>
+
                         <p className="mt-1 text-xs text-gray-500">
                             Password must be at least 8 characters.
                         </p>
@@ -258,7 +272,10 @@ return (
                         {loading && (
                             <Loader2 className="animate-spin" size={20} />
                         )}
-                        {loading ? "Creating account..." : "Create Account"}
+
+                        {loading
+                            ? "Creating account..."
+                            : "Create Account"}
                     </button>
                 </form>
 
@@ -279,7 +296,11 @@ return (
 
 function GoogleIcon() {
     return (
-        <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+        <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+        >
             <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
