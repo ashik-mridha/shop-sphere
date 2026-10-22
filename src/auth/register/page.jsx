@@ -10,7 +10,7 @@ export default function RegisterPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
-    const [googleLoading, setGoogleLoading] = useState(false);
+    const [googleLoading, setGoogleRegister] = useState(false);
     const [error, setError] = useState("");
 
     const { startLoading, stopLoading } = useGlobalLoading();
@@ -87,7 +87,7 @@ export default function RegisterPage() {
         // আপনার স্টেট নামের সাথে মিলিয়ে এখানে googleLoading ব্যবহার করা হয়েছে
         if (loading || googleLoading) return;
 
-        setGoogleLoading(true);
+        setGoogleRegister(true);
         setError("");
 
         const taskId = startLoading("Connecting to Google...");
@@ -105,7 +105,7 @@ export default function RegisterPage() {
             setError(message);
             toast.error(message);
             stopLoading(taskId);
-            setGoogleLoading(false);
+            setGoogleRegister(false);
         }
     };
 
