@@ -32,7 +32,7 @@ export default function RegisterPage() {
                 name: name.trim(),
                 email: email.trim(),
                 password,
-                callbackURL: `${window.location.origin}/user/dashboard`,
+                callbackURL: `${ window.location.origin } /user/dashboard`,
             });
 
             if (response?.error) {
@@ -45,14 +45,38 @@ export default function RegisterPage() {
                 return;
             }
 
-            toast.success("Account created successfully!");
+            // Verify whether registration also created a session.
+            let sessionResult = null;
 
-            navigate("/user/dashboard", { replace: true });
+            try {
+                sessionResult = await authClient.getSession();
+            } catch (sessionError) {
+                console.error(
+                    "Could not verify registration session:",
+                    sessionError
+                );
+            }
+
+            if (sessionResult?.data?.user) {
+                toast.success("Account created successfully!");
+
+                navigate("/user/dashboard", { replace: true });
+            } else {
+                toast.success(
+                    "Account created successfully! Please sign in."
+                );
+
+                navigate("/login", {
+                    replace: true,
+                    state: { registered: true },
+                });
+            }
         } catch (err) {
             console.error("Registration failed:", err);
 
             const message =
-                err?.message || "Something went wrong. Please try again.";
+                err?.message ||
+                "Something went wrong. Please try again.";
 
             setError(message);
             toast.error(message);
@@ -71,166 +95,186 @@ export default function RegisterPage() {
         const taskId = startLoading("Connecting to Google...");
 
         try {
-            await authClient.signIn.social({
+            const response = await authClient.signIn.social({
                 provider: "google",
-                callbackURL: `${window.location.origin}/user/dashboard`,
+                callbackURL: `${ window.location.origin } /user/dashboard`,
+                errorCallbackURL: `${ window.location.origin }/register`,
             });
+
+if (response?.error) {
+    const message =
+        response.error.message ||
+        "Google registration failed. Please try again.";
+
+    setError(message);
+    toast.error(message);
+
+    stopLoading(taskId);
+    setGoogleLoading(false);
+}
+
+            // On success, Better Auth redirects the browser to Google.
         } catch (err) {
-            console.error("Google registration failed:", err);
+    console.error("Google registration failed:", err);
 
-            const message =
-                err?.message || "Google registration failed. Please try again.";
+    const message =
+        err?.message ||
+        "Google registration failed. Please try again.";
 
-            setError(message);
-            toast.error(message);
-            stopLoading(taskId);
-            setGoogleLoading(false);
-        }
+    setError(message);
+    toast.error(message);
+
+    stopLoading(taskId);
+    setGoogleLoading(false);
+}
     };
 
-    return (
-        <main className="flex min-h-screen items-center justify-center bg-[#0a0f0d] px-4 py-10">
-            <div className="w-full max-w-md">
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold text-white">
-                        Create Account
-                    </h1>
-                    <p className="mt-2 text-gray-400">
-                        Join ShopSphere today
-                    </p>
+return (
+    <main className="flex min-h-screen items-center justify-center bg-[#0a0f0d] px-4 py-10">
+        <div className="w-full max-w-md">
+            <div className="mb-8 text-center">
+                <h1 className="text-3xl font-bold text-white">
+                    Create Account
+                </h1>
+                <p className="mt-2 text-gray-400">
+                    Join ShopSphere today
+                </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#22332a] bg-[#121816] p-8 shadow-xl">
+                <button
+                    onClick={handleGoogleRegister}
+                    type="button"
+                    disabled={loading || googleLoading}
+                    className="mb-6 flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-white py-3 font-medium text-gray-800 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {googleLoading ? (
+                        <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                        <GoogleIcon />
+                    )}
+
+                    {googleLoading
+                        ? "Connecting..."
+                        : "Continue with Google"}
+                </button>
+
+                <div className="relative mb-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-[#22332a]" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="bg-[#121816] px-3 text-gray-500">
+                            or register with email
+                        </span>
+                    </div>
                 </div>
 
-                <div className="rounded-2xl border border-[#22332a] bg-[#121816] p-8 shadow-xl">
-                    <button
-                        onClick={handleGoogleRegister}
-                        type="button"
-                        disabled={loading || googleLoading}
-                        className="mb-6 flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-white py-3 font-medium text-gray-800 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {googleLoading ? (
-                            <Loader2 className="animate-spin" size={20} />
-                        ) : (
-                            <GoogleIcon />
-                        )}
-                        {googleLoading ? "Connecting..." : "Continue with Google"}
-                    </button>
-
-                    <div className="relative mb-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-[#22332a]" />
+                <form onSubmit={handleRegister} className="space-y-5">
+                    {error && (
+                        <div
+                            role="alert"
+                            className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+                        >
+                            {error}
                         </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="bg-[#121816] px-3 text-gray-500">
-                                or register with email
-                            </span>
+                    )}
+
+                    <div>
+                        <label className="mb-1.5 block text-sm text-gray-400">
+                            Full Name
+                        </label>
+                        <div className="relative">
+                            <User
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                size={18}
+                            />
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                autoComplete="name"
+                                required
+                                disabled={loading || googleLoading}
+                                className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
+                                placeholder="Your name"
+                            />
                         </div>
                     </div>
 
-                    <form onSubmit={handleRegister} className="space-y-5">
-                        {error && (
-                            <div
-                                role="alert"
-                                className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
-                            >
-                                {error}
-                            </div>
+                    <div>
+                        <label className="mb-1.5 block text-sm text-gray-400">
+                            Email
+                        </label>
+                        <div className="relative">
+                            <Mail
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                size={18}
+                            />
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                autoComplete="email"
+                                required
+                                disabled={loading || googleLoading}
+                                className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
+                                placeholder="you@example.com"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="mb-1.5 block text-sm text-gray-400">
+                            Password
+                        </label>
+                        <div className="relative">
+                            <Lock
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                size={18}
+                            />
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoComplete="new-password"
+                                minLength={8}
+                                required
+                                disabled={loading || googleLoading}
+                                className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
+                                placeholder="Minimum 8 characters"
+                            />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                            Password must be at least 8 characters.
+                        </p>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading || googleLoading}
+                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#10B981] py-3 font-semibold text-white transition hover:bg-[#0d9668] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {loading && (
+                            <Loader2 className="animate-spin" size={20} />
                         )}
+                        {loading ? "Creating account..." : "Create Account"}
+                    </button>
+                </form>
 
-                        <div>
-                            <label className="mb-1.5 block text-sm text-gray-400">
-                                Full Name
-                            </label>
-                            <div className="relative">
-                                <User
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                    size={18}
-                                />
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    autoComplete="name"
-                                    required
-                                    disabled={loading || googleLoading}
-                                    className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
-                                    placeholder="Your name"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="mb-1.5 block text-sm text-gray-400">
-                                Email
-                            </label>
-                            <div className="relative">
-                                <Mail
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                    size={18}
-                                />
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    autoComplete="email"
-                                    required
-                                    disabled={loading || googleLoading}
-                                    className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
-                                    placeholder="you@example.com"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="mb-1.5 block text-sm text-gray-400">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <Lock
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                    size={18}
-                                />
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    autoComplete="new-password"
-                                    minLength={8}
-                                    required
-                                    disabled={loading || googleLoading}
-                                    className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
-                                    placeholder="Minimum 8 characters"
-                                />
-                            </div>
-                            <p className="mt-1 text-xs text-gray-500">
-                                Password must be at least 8 characters.
-                            </p>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading || googleLoading}
-                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#10B981] py-3 font-semibold text-white transition hover:bg-[#0d9668] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {loading && (
-                                <Loader2 className="animate-spin" size={20} />
-                            )}
-                            {loading ? "Creating account..." : "Create Account"}
-                        </button>
-                    </form>
-
-                    <p className="mt-6 text-center text-sm text-gray-400">
-                        Already have an account?{" "}
-                        <Link
-                            to="/login"
-                            className="font-medium text-[#10B981] hover:underline"
-                        >
-                            Sign in
-                        </Link>
-                    </p>
-                </div>
+                <p className="mt-6 text-center text-sm text-gray-400">
+                    Already have an account?{" "}
+                    <Link
+                        to="/login"
+                        className="font-medium text-[#10B981] hover:underline"
+                    >
+                        Sign in
+                    </Link>
+                </p>
             </div>
-        </main>
-    );
+        </div>
+    </main>
+);
 }
 
 function GoogleIcon() {

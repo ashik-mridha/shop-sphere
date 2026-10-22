@@ -34,40 +34,44 @@ export default function LoginPage() {
 
             if (response?.error) {
                 const message =
-                    response.error.message || "Login failed. Please try again.";
+                    response.error.message ||
+                    "Login failed. Please try again.";
 
                 setError(message);
                 toast.error(message);
                 return;
             }
 
-            // Prefer the role returned by Better Auth, if present.
-            let user = response?.data?.user;
-            let userRole = String(user?.role || "").toLowerCase();
+            // Read the session after successful sign-in.
+            const sessionResult = await authClient.getSession();
+            const user =
+                sessionResult?.data?.user ||
+                response?.data?.user;
 
-            // If sign-in does not return a role, refresh session.
-            if (!userRole) {
-                try {
-                    const sessionResult = await authClient.getSession();
-                    user = sessionResult?.data?.user || user;
-                    userRole = String(user?.role || "").toLowerCase();
-                } catch (sessionError) {
-                    console.error("Could not read session:", sessionError);
-                }
+            if (!user) {
+                const message =
+                    "Login response received, but session could not be verified. Please try again.";
+
+                setError(message);
+                toast.error(message);
+                return;
             }
+
+            const userRole = String(user.role || "").toLowerCase();
 
             toast.success("Login successful! Welcome back.");
 
             if (userRole === "admin") {
                 navigate("/admin/dashboard", { replace: true });
             } else {
-                navigate("/user/Dashboard", { replace: true });
+                navigate("/user/dashboard", { replace: true });
             }
         } catch (err) {
             console.error("Login failed:", err);
 
             const message =
-                err?.message || "Something went wrong. Please try again.";
+                err?.message ||
+                "Something went wrong. Please try again.";
 
             setError(message);
             toast.error(message);
@@ -86,148 +90,183 @@ export default function LoginPage() {
         const taskId = startLoading("Connecting to Google...");
 
         try {
-            await authClient.signIn.social({
+            const response = await authClient.signIn.social({
                 provider: "google",
-                callbackURL: `${window.location.origin}/user/dashboard`,
+                callbackURL: `${ window.location.origin } /user/dashboard`,
+                errorCallbackURL: `${ window.location.origin }/login`,
             });
 
-            // Social sign-in normally redirects the browser to Google.
-            // Keep the loading state active while the redirect starts.
+if (response?.error) {
+    const message =
+        response.error.message ||
+        "Google login failed. Please try again.";
+
+    setError(message);
+    toast.error(message);
+    stopLoading(taskId);
+    setGoogleLoading(false);
+}
         } catch (err) {
-            console.error("Google login failed:", err);
+    console.error("Google login failed:", err);
 
-            const message =
-                err?.message || "Google login failed. Please try again.";
+    const message =
+        err?.message ||
+        "Google login failed. Please try again.";
 
-            setError(message);
-            toast.error(message);
-            stopLoading(taskId);
-            setGoogleLoading(false);
-        }
+    setError(message);
+    toast.error(message);
+
+    stopLoading(taskId);
+    setGoogleLoading(false);
+}
     };
 
-    return (
-        <main className="flex min-h-screen items-center justify-center bg-[#0a0f0d] px-4 py-10">
-            <div className="w-full max-w-md">
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold text-white">
-                        Welcome Back
-                    </h1>
-                    <p className="mt-2 text-gray-400">
-                        Sign in to your ShopSphere account
-                    </p>
+return (
+    <main className="flex min-h-screen items-center justify-center bg-[#0a0f0d] px-4 py-10">
+        <div className="w-full max-w-md">
+            <div className="mb-8 text-center">
+                <h1 className="text-3xl font-bold text-white">
+                    Welcome Back
+                </h1>
+
+                <p className="mt-2 text-gray-400">
+                    Sign in to your ShopSphere account
+                </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#22332a] bg-[#121816] p-8 shadow-xl">
+                <button
+                    onClick={handleGoogleLogin}
+                    type="button"
+                    disabled={loading || googleLoading}
+                    className="mb-6 flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-white py-3 font-medium text-gray-800 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {googleLoading ? (
+                        <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                        <GoogleIcon />
+                    )}
+
+                    {googleLoading
+                        ? "Connecting..."
+                        : "Continue with Google"}
+                </button>
+
+                <div className="relative mb-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-[#22332a]" />
+                    </div>
+
+                    <div className="relative flex justify-center text-sm">
+                        <span className="bg-[#121816] px-3 text-gray-500">
+                            or continue with email
+                        </span>
+                    </div>
                 </div>
 
-                <div className="rounded-2xl border border-[#22332a] bg-[#121816] p-8 shadow-xl">
-                    <button
-                        onClick={handleGoogleLogin}
-                        type="button"
-                        disabled={loading || googleLoading}
-                        className="mb-6 flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-white py-3 font-medium text-gray-800 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {googleLoading ? (
-                            <Loader2 className="animate-spin" size={20} />
-                        ) : (
-                            <GoogleIcon />
-                        )}
-                        {googleLoading ? "Connecting..." : "Continue with Google"}
-                    </button>
-
-                    <div className="relative mb-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-[#22332a]" />
+                <form
+                    onSubmit={handleEmailLogin}
+                    className="space-y-5"
+                >
+                    {error && (
+                        <div
+                            role="alert"
+                            className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+                        >
+                            {error}
                         </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="bg-[#121816] px-3 text-gray-500">
-                                or continue with email
-                            </span>
+                    )}
+
+                    <div>
+                        <label className="mb-1.5 block text-sm text-gray-400">
+                            Email
+                        </label>
+
+                        <div className="relative">
+                            <Mail
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                size={18}
+                            />
+
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) =>
+                                    setEmail(e.target.value)
+                                }
+                                autoComplete="email"
+                                required
+                                disabled={loading || googleLoading}
+                                className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
+                                placeholder="you@example.com"
+                            />
                         </div>
                     </div>
 
-                    <form onSubmit={handleEmailLogin} className="space-y-5">
-                        {error && (
-                            <div
-                                role="alert"
-                                className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
-                            >
-                                {error}
-                            </div>
+                    <div>
+                        <label className="mb-1.5 block text-sm text-gray-400">
+                            Password
+                        </label>
+
+                        <div className="relative">
+                            <Lock
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                size={18}
+                            />
+
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) =>
+                                    setPassword(e.target.value)
+                                }
+                                autoComplete="current-password"
+                                required
+                                disabled={loading || googleLoading}
+                                className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
+                                placeholder="Your password"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading || googleLoading}
+                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#10B981] py-3 font-semibold text-white transition hover:bg-[#0d9668] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {loading && (
+                            <Loader2
+                                className="animate-spin"
+                                size={20}
+                            />
                         )}
 
-                        <div>
-                            <label className="mb-1.5 block text-sm text-gray-400">
-                                Email
-                            </label>
-                            <div className="relative">
-                                <Mail
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                    size={18}
-                                />
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    autoComplete="email"
-                                    required
-                                    disabled={loading || googleLoading}
-                                    className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
-                                    placeholder="you@example.com"
-                                />
-                            </div>
-                        </div>
+                        {loading ? "Signing in..." : "Sign In"}
+                    </button>
+                </form>
 
-                        <div>
-                            <label className="mb-1.5 block text-sm text-gray-400">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <Lock
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                    size={18}
-                                />
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    autoComplete="current-password"
-                                    required
-                                    disabled={loading || googleLoading}
-                                    className="w-full rounded-xl border border-[#22332a] bg-[#0d1411] py-3 pl-10 pr-4 text-white placeholder-gray-500 transition focus:border-[#10B981] focus:outline-none disabled:opacity-60"
-                                    placeholder="Your password"
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading || googleLoading}
-                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#10B981] py-3 font-semibold text-white transition hover:bg-[#0d9668] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {loading && (
-                                <Loader2 className="animate-spin" size={20} />
-                            )}
-                            {loading ? "Signing in..." : "Sign In"}
-                        </button>
-                    </form>
-
-                    <p className="mt-6 text-center text-sm text-gray-400">
-                        Don’t have an account?{" "}
-                        <Link
-                            to="/register"
-                            className="font-medium text-[#10B981] hover:underline"
-                        >
-                            Create account
-                        </Link>
-                    </p>
-                </div>
+                <p className="mt-6 text-center text-sm text-gray-400">
+                    Don’t have an account?{" "}
+                    <Link
+                        to="/register"
+                        className="font-medium text-[#10B981] hover:underline"
+                    >
+                        Create account
+                    </Link>
+                </p>
             </div>
-        </main>
-    );
+        </div>
+    </main>
+);
 }
 
 function GoogleIcon() {
     return (
-        <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+        <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+        >
             <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
