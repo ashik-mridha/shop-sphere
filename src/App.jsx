@@ -34,8 +34,6 @@ import AdminOrdersPage from "./pages/dashboard/orders/AdminOrdersPage";
 import MyOrdersPage from "./pages/dashboard/orders/MyOrdersPage";
 import WishlistPage from "./pages/dashboard/wishlist/page";
 import MyProfilePage from "./pages/dashboard/profile/page";
-import AuthCallback from "./auth/AuthCallback";
-
 function Placeholder({ title }) {
   return (
     <div className="rounded-2xl bg-[#121816] border border-[#22332a] p-8 text-white shadow-sm">
@@ -82,7 +80,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
 
         {/* OAUTH (GOOGLE) REDIRECT & ROLE VERIFICATION ROUTE */}
-        <Route path="/auth/callback" element={<AuthCallback />} />
+        
 
         {/* USER DASHBOARD */}
         <Route element={<ProtectedRoute allowedRole="user" />}>

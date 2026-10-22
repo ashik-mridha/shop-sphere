@@ -87,16 +87,13 @@ export default function LoginPage() {
         try {
             await authClient.signIn.social({
                 provider: "google",
-                callbackURL: "/auth/callback", // রোল ভেরিফিকেশন রাউট
+                // এখানে সরাসরি আপনার ফ্রন্টএন্ডের ড্যাশবোর্ড পাথ দিন, /auth/callback নয়
+                callbackURL: "/user/dashboard",
                 errorCallbackURL: "/login",
             });
         } catch (err) {
             console.error("Google login failed:", err);
-
-            const message =
-                err?.message ||
-                "Google login failed. Please try again.";
-
+            const message = err?.message || "Google login failed. Please try again.";
             setError(message);
             toast.error(message);
             stopLoading(taskId);
