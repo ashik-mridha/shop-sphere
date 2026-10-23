@@ -1,159 +1,96 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import {
-    LayoutDashboard,
-    ShoppingBag,
-    Package,
-    Users,
-    Heart,
-    UserRound,
-    Settings,
-    LogOut,
-    Store,
-    Menu,
-    X,
-} from "lucide-react";
 import { useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import {
+    Heart, LayoutDashboard, LogOut, MapPin, Menu, MessageSquareText, Package, ShoppingBag, Star, Store, Tag, Ticket, UserRound, Users, X,
+} from "lucide-react";
+import Logo from "../components/layout/Logo";
+import ThemeToggle from "../components/layout/ThemeToggle";
+import Badge from "../components/ui/Badge";
+import useAuth from "../hooks/useAuth";
+
+const adminLinks = [
+    { name: "Overview", to: "/admin/dashboard", icon: LayoutDashboard },
+    { name: "Products", to: "/admin/products", icon: Package },
+    { name: "Orders", to: "/admin/orders", icon: ShoppingBag },
+    { name: "Users", to: "/admin/users", icon: Users },
+    { name: "Categories", to: "/admin/categories", icon: Tag },
+    { name: "Coupons", to: "/admin/coupons", icon: Ticket },
+    { name: "Reviews", to: "/admin/reviews", icon: Star },
+    { name: "Messages", to: "/admin/messages", icon: MessageSquareText },
+    { name: "My profile", to: "/admin/profile", icon: UserRound },
+];
+
+const userLinks = [
+    { name: "Overview", to: "/user/dashboard", icon: LayoutDashboard },
+    { name: "My orders", to: "/user/orders", icon: ShoppingBag },
+    { name: "Wishlist", to: "/user/wishlist", icon: Heart },
+    { name: "Addresses", to: "/user/addresses", icon: MapPin },
+    { name: "Profile", to: "/user/profile", icon: UserRound },
+];
 
 export default function DashboardLayout({ role = "user" }) {
-    const [menuOpen, setMenuOpen] = useState(false);
-    const navigate = useNavigate();
-
+    const [open, setOpen] = useState(false);
+    const { user, logout } = useAuth();
+    const location = useLocation();
     const isAdmin = role === "admin";
+    const links = isAdmin ? adminLinks : userLinks;
+    const current = links.find((l) => location.pathname === l.to || location.pathname.startsWith(`${l.to}/`));
 
-    const links = isAdmin
-        ? [
-            { name: "Overview", path: "/admin/dashboard", icon: LayoutDashboard },
-            { name: "Products", path: "/admin/products", icon: Package },
-            { name: "Orders", path: "/admin/orders", icon: ShoppingBag },
-            { name: "Users", path: "/admin/users", icon: Users },
-            { name: "Settings", path: "/admin/settings", icon: Settings },
-        ]
-        : [
-            { name: "Overview", path: "/user/dashboard", icon: LayoutDashboard },
-            { name: "My Orders", path: "/user/orders", icon: ShoppingBag },
-            { name: "Wishlist", path: "/user/wishlist", icon: Heart },
-            { name: "My Profile", path: "/user/profile", icon: UserRound }
-        ];
-
-    function handleLogout() {
-        navigate("/login");
-    }
+    const linkClass = ({ isActive }) =>
+        `flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors ${isActive ? "bg-primary text-primary-fg" : "text-muted hover:bg-surface-2 hover:text-fg"}`;
 
     return (
-        <div className="min-h-screen bg-gray-100 text-gray-900">
-            {menuOpen && (
-                <button
-                    aria-label="Close sidebar"
-                    onClick={() => setMenuOpen(false)}
-                    className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-                />
-            )}
+        <div className="min-h-screen bg-bg">
+            {open && <button type="button" aria-label="Close sidebar" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-black/50 lg:hidden" />}
 
             <aside
-                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col
-        bg-white shadow-lg transition-transform duration-300
-        ${menuOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0`}
+                aria-label="Dashboard navigation"
+                className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-line bg-surface transition-transform duration-200 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
             >
-                <div className="flex h-20 items-center justify-between border-b px-6">
-                    <button
-                        onClick={() => navigate("/")}
-                        className="flex items-center gap-2 text-xl font-bold text-emerald-800"
-                    >
-                        <Store size={26} />
-                        ShopSphere
-                    </button>
-
-                    <button
-                        className="lg:hidden"
-                        onClick={() => setMenuOpen(false)}
-                        aria-label="Close menu"
-                    >
-                        <X />
+                <div className="flex h-16 items-center justify-between border-b border-line px-5">
+                    <Logo />
+                    <button type="button" className="rounded-lg p-1.5 hover:bg-surface-2 lg:hidden" onClick={() => setOpen(false)} aria-label="Close menu">
+                        <X size={20} />
                     </button>
                 </div>
 
-                <div className="border-b px-6 py-5">
-                    <p className="text-xs uppercase tracking-widest text-gray-500">
-                        Dashboard
-                    </p>
-                    <p className="mt-1 font-semibold">
-                        {isAdmin ? "Administrator" : "My Account"}
-                    </p>
-                    <span
-                        className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-medium ${isAdmin
-                            ? "bg-purple-100 text-purple-700"
-                            : "bg-emerald-100 text-emerald-700"
-                            }`}
-                    >
-                        {isAdmin ? "Admin Panel" : "Customer Panel"}
-                    </span>
+                <div className="border-b border-line px-5 py-4">
+                    <p className="truncate text-sm font-semibold">{user?.name}</p>
+                    <p className="truncate text-xs text-muted">{user?.email}</p>
+                    <Badge tone={isAdmin ? "warning" : "primary"} className="mt-2">{isAdmin ? "Administrator" : "Customer"}</Badge>
                 </div>
 
-                <nav className="flex-1 space-y-2 overflow-y-auto p-4">
-                    {links.map(({ name, path, icon: Icon }) => (
-                        <NavLink
-                            key={path}
-                            to={path}
-                            onClick={() => setMenuOpen(false)}
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${isActive
-                                    ? "bg-emerald-800 text-white shadow"
-                                    : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-800"
-                                }`
-                            }
-                        >
-                            <Icon size={19} />
+                <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+                    {links.map(({ name, to, icon: Icon }) => (
+                        <NavLink key={to} to={to} onClick={() => setOpen(false)} className={linkClass}>
+                            <Icon size={18} aria-hidden="true" />
                             {name}
                         </NavLink>
                     ))}
                 </nav>
 
-                <div className="border-t p-4">
-                    <button
-                        onClick={() => navigate("/")}
-                        className="mb-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm hover:bg-gray-100"
-                    >
-                        <Store size={19} />
-                        Visit Store
-                    </button>
-
-                    <button
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-red-600 hover:bg-red-50"
-                    >
-                        <LogOut size={19} />
-                        Logout
+                <div className="space-y-1 border-t border-line p-3">
+                    <Link to="/" className="flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg">
+                        <Store size={18} aria-hidden="true" /> Visit store
+                    </Link>
+                    <button type="button" onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold text-danger hover:bg-danger-soft">
+                        <LogOut size={18} aria-hidden="true" /> Sign out
                     </button>
                 </div>
             </aside>
 
-            <div className="min-h-screen lg:pl-64">
-                <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b bg-white px-4 sm:px-8">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setMenuOpen(true)}
-                            className="rounded-lg p-2 hover:bg-gray-100 lg:hidden"
-                            aria-label="Open menu"
-                        >
-                            <Menu />
+            <div className="lg:pl-64">
+                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-line bg-surface/90 px-4 backdrop-blur sm:px-6">
+                    <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-surface-2 lg:hidden" aria-label="Open menu" aria-expanded={open}>
+                            <Menu size={22} />
                         </button>
-                        <div>
-                            <p className="font-semibold">
-                                {isAdmin ? "Admin Dashboard" : "User Dashboard"}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                                Welcome to ShopSphere
-                            </p>
-                        </div>
+                        <p className="font-bold">{current?.name || (isAdmin ? "Admin" : "My account")}</p>
                     </div>
-
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800">
-                        {isAdmin ? "A" : "U"}
-                    </div>
+                    <ThemeToggle />
                 </header>
 
-                <main className="p-4 sm:p-8">
+                <main id="main" className="mx-auto w-full max-w-7xl p-4 sm:p-6">
                     <Outlet />
                 </main>
             </div>

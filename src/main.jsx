@@ -1,21 +1,29 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import App from "./App";
-import { LoadingProvider } from "./context/LoadingContext";
-import "./index.css";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { ThemeProvider } from "./context/ThemeContext";
+import { WishlistProvider } from "./context/WishlistContext";
+import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <LoadingProvider>
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <ErrorBoundary>
+      <BrowserRouter>
         <ThemeProvider>
-        <App />
-        <Toaster position="top-right" />
+          <WishlistProvider>
+            <App />
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                style: { background: "var(--surface)", color: "var(--fg)", border: "1px solid var(--line)" },
+              }}
+            />
+          </WishlistProvider>
         </ThemeProvider>
-      </LoadingProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+      </BrowserRouter>
+    </ErrorBoundary>
+  </StrictMode>
 );

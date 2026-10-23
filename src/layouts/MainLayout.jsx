@@ -1,18 +1,17 @@
 import { Outlet } from "react-router-dom";
-import Navbar from "../Components/Navbar";
-import Footer from "../Components/Footer";
+import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
+import MobileBottomNav from "../components/layout/MobileBottomNav";
 
-const MainLayout = () => {
+export default function MainLayout() {
     return (
         <div className="flex min-h-screen flex-col">
             <Navbar />
-            <main className="mx-auto w-full max-w-[1440px] flex-1 px-5 py-10">
+            <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-8 md:pb-10">
                 <Outlet />
-                
             </main>
             <Footer />
+            <MobileBottomNav />
         </div>
     );
-};
-
-export default MainLayout;
+}
