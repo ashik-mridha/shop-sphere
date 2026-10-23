@@ -13,6 +13,8 @@ import { Input } from "../../components/ui/Input";
 import useAuth from "../../hooks/useAuth";
 import usePageMeta from "../../hooks/usePageMeta";
 import { authClient } from "../../lib/auth-client";
+import { authErrorMessage } from "../../lib/authErrors";
+import { locationPath, resolveDestination } from "../../lib/authRedirect";
 
 const schema = z
     .object({
@@ -25,32 +27,39 @@ const schema = z
 
 export default function RegisterPage() {
     usePageMeta("Create account", "Create a free ShopSphere account to order securely, track deliveries and review products you buy.");
-    const { isLoggedIn, isPending, dashboardPath } = useAuth();
+    const { user, isLoggedIn, isPending } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [error, setError] = useState("");
-    const from = location.state?.from;
-    const fromPath = from?.pathname ? `${from.pathname}${from.search || ""}` : null;
+    const [googleBusy, setGoogleBusy] = useState(false);
+    const fromPath = locationPath(location.state?.from);
 
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
         resolver: zodResolver(schema),
         defaultValues: { name: "", email: "", password: "", confirm: "" },
     });
 
-    if (!isPending && isLoggedIn) return <Navigate to={fromPath || dashboardPath} replace />;
+    if (!isPending && isLoggedIn) return <Navigate to={resolveDestination(user.role, fromPath)} replace />;
 
     async function onSubmit(values) {
         setError("");
         try {
             const res = await authClient.signUp.email({ name: values.name, email: values.email, password: values.password });
             if (res?.error) {
-                setError(res.error.message || "We couldn’t create your account. Please try again.");
+                setError(authErrorMessage(res.error, "We could not create your account. Please try again."));
+                return;
+            }
+            // sign-up signs the user in; the real role comes from the session (new accounts are always "user")
+            const session = await authClient.getSession({ query: { disableCookieCache: true } });
+            if (!session?.data?.user) {
+                toast("Account created. Please sign in.");
+                navigate("/login", { replace: true, state: location.state });
                 return;
             }
             toast.success("Account created. Welcome to ShopSphere!");
-            navigate(fromPath || "/user/dashboard", { replace: true });
+            navigate(resolveDestination(session.data.user.role, fromPath), { replace: true });
         } catch (err) {
-            setError(err?.message || "We couldn’t reach the server. Please try again.");
+            setError(authErrorMessage(err, "We could not reach the server. Please try again."));
         }
     }
 
@@ -60,7 +69,7 @@ export default function RegisterPage() {
             subtitle="Order securely, track deliveries and save your favourites"
             footer={<>Already have an account? <Link to="/login" state={location.state} className="font-semibold text-primary hover:underline">Sign in</Link></>}
         >
-            <GoogleButton target={fromPath || "/user/dashboard"} disabled={isSubmitting} onError={setError} />
+            <GoogleButton from={fromPath} disabled={isSubmitting} onError={setError} onBusyChange={setGoogleBusy} />
             <div className="my-5 flex items-center gap-3 text-xs text-muted" aria-hidden="true">
                 <span className="h-px flex-1 bg-line" /> or register with email <span className="h-px flex-1 bg-line" />
             </div>
@@ -75,7 +84,7 @@ export default function RegisterPage() {
                 <Input label="Email" type="email" icon={Mail} autoComplete="email" placeholder="you@example.com" error={errors.email?.message} {...register("email")} />
                 <PasswordInput label="Password" autoComplete="new-password" hint="At least 8 characters" error={errors.password?.message} {...register("password")} />
                 <PasswordInput label="Confirm password" autoComplete="new-password" error={errors.confirm?.message} {...register("confirm")} />
-                <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>
+                <Button type="submit" size="lg" className="w-full" loading={isSubmitting} disabled={googleBusy}>
                     {isSubmitting ? "Creating account…" : "Create account"}
                 </Button>
                 <p className="text-center text-xs text-muted">

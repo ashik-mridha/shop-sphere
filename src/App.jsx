@@ -27,6 +27,7 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
+const AuthRedirectPage = lazy(() => import("./pages/auth/AuthRedirectPage"));
 
 const UserOverviewPage = lazy(() => import("./pages/user/UserOverviewPage"));
 const UserOrdersPage = lazy(() => import("./pages/user/UserOrdersPage"));
@@ -77,6 +78,7 @@ export default function App() {
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/auth/redirect" element={<AuthRedirectPage />} />
 
         {/* Customer dashboard */}
         <Route element={<ProtectedRoute allowedRole="user" />}>

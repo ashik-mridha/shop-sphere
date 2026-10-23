@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { authClient } from "../../lib/auth-client";
+import { authErrorMessage } from "../../lib/authErrors";
+import { rememberDestination } from "../../lib/authRedirect";
 
 function GoogleIcon() {
     return (
@@ -13,21 +15,26 @@ function GoogleIcon() {
     );
 }
 
-export default function GoogleButton({ target, disabled, onError }) {
+/** `from` = page the visitor originally wanted (or null). The role-based landing is decided after sign-in at /auth/redirect. */
+export default function GoogleButton({ from = null, disabled, onError, onBusyChange }) {
     const [busy, setBusy] = useState(false);
 
     async function go() {
         setBusy(true);
+        onBusyChange?.(true);
+        rememberDestination(from);
         try {
             const res = await authClient.signIn.social({
                 provider: "google",
-                callbackURL: `${window.location.origin}${target}`,
+                callbackURL: `${window.location.origin}/auth/redirect`,
                 errorCallbackURL: `${window.location.origin}/login`,
+                newUserCallbackURL: `${window.location.origin}/auth/redirect`,
             });
-            if (res?.error) throw new Error(res.error.message);
+            if (res?.error) throw res.error;
         } catch (error) {
-            onError?.(error.message || "Google sign-in is not available right now.");
+            onError?.(authErrorMessage(error, "Google sign-in is not available right now."));
             setBusy(false);
+            onBusyChange?.(false);
         }
     }
 
