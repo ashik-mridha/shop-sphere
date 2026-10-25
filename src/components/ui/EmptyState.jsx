@@ -13,10 +13,10 @@ export default function EmptyState({ icon: Icon, title, description, action, cla
     );
 }
 
-export function ErrorState({ message, onRetry }) {
+export function ErrorState({ title = "We couldn’t load this", message, onRetry }) {
     return (
         <div role="alert" className="flex flex-col items-center rounded-xl border border-danger/30 bg-danger-soft px-6 py-10 text-center">
-            <h2 className="text-lg font-bold text-danger">We couldn’t load this</h2>
+            <h2 className="text-lg font-bold text-danger">{title}</h2>
             <p className="mt-1.5 max-w-md text-sm text-fg/80">{message || "Something went wrong. Please try again."}</p>
             {onRetry && (
                 <button type="button" onClick={onRetry} className="mt-4 rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white dark:text-black">

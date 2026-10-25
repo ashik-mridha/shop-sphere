@@ -5,7 +5,7 @@ import CategoryGrid from "../../components/home/CategoryGrid";
 import ProductSection from "../../components/home/ProductSection";
 import DealsBanner from "../../components/home/DealsBanner";
 import Testimonials from "../../components/home/Testimonials";
-import { Brands, StatsStrip } from "../../components/home/BrandsStats";
+import { Brands } from "../../components/home/BrandsStats";
 import { NewsletterSection, FaqPreview } from "../../components/home/NewsletterFaq";
 
 export default function HomePage() {
@@ -24,7 +24,6 @@ export default function HomePage() {
             <DealsBanner />
             <ProductSection eyebrow="Save" title="Deals and offers" description="Marked down from their regular price." params={{ onSale: "true", sort: "discount" }} to="/shop?onSale=true&sort=discount" limit={4} />
             <Testimonials />
-            <StatsStrip />
             <Brands />
             <NewsletterSection />
             <FaqPreview />

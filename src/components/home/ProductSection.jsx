@@ -4,11 +4,12 @@ import useFetch from "../../hooks/useFetch";
 import ProductGrid from "../shop/ProductGrid";
 import { ProductGridSkeleton } from "../ui/Skeleton";
 import { SectionHeader } from "../ui/PageHeader";
+import { ErrorState } from "../ui/EmptyState";
 
 export default function ProductSection({ eyebrow, title, description, params, to, limit = 8 }) {
-    const { data, loading, error } = useFetch("/products", { params: { limit, ...params } });
+    const { data, loading, error, refetch } = useFetch("/products", { params: { limit, ...params } });
     const products = data?.data || [];
-    if (!loading && (error || !products.length)) return null;
+    if (!loading && !error && !products.length) return null;
 
     return (
         <section aria-label={title}>
@@ -22,7 +23,7 @@ export default function ProductSection({ eyebrow, title, description, params, to
                     </Link>
                 }
             />
-            {loading ? <ProductGridSkeleton count={Math.min(limit, 4)} /> : <ProductGrid products={products} />}
+            {error ? <ErrorState title="Could not load products" message={error.message} onRetry={refetch} /> : loading ? <ProductGridSkeleton count={Math.min(limit, 4)} /> : <ProductGrid products={products} />}
         </section>
     );
 }

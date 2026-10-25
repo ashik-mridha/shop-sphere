@@ -1,47 +1,95 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Heart, Lock, Minus, Plus, RotateCcw, ShoppingCart, Truck } from "lucide-react";
+import { PackageSearch } from "lucide-react";
 import toast from "react-hot-toast";
 import usePageMeta from "../../hooks/usePageMeta";
 import useFetch from "../../hooks/useFetch";
 import useCart from "../../hooks/useCart";
+import useRecentlyViewed from "../../hooks/useRecentlyViewed";
 import { useWishlist } from "../../context/WishlistContext";
-import { formatMoney, titleCase } from "../../lib/format";
+import { titleCase } from "../../lib/format";
+import { absoluteUrl } from "../../lib/productImages";
 import Gallery from "../../components/product/Gallery";
+import BuyBox from "../../components/product/BuyBox";
+import ProductTabs from "../../components/product/ProductTabs";
 import ReviewsSection from "../../components/product/ReviewsSection";
+import StickyBuyBar from "../../components/product/StickyBuyBar";
+import RecentlyViewed from "../../components/product/RecentlyViewed";
+import { FREE_SHIPPING_OVER, SHIPPING_FLAT } from "../../components/product/shippingInfo";
 import ProductGrid from "../../components/shop/ProductGrid";
-import Button, { LinkButton } from "../../components/ui/Button";
-import Badge from "../../components/ui/Badge";
-import StarRating from "../../components/ui/StarRating";
+import { LinkButton } from "../../components/ui/Button";
 import Skeleton from "../../components/ui/Skeleton";
 import EmptyState, { ErrorState } from "../../components/ui/EmptyState";
-import { PackageSearch } from "lucide-react";
 
-function addBusinessDays(days) {
-    const d = new Date();
-    let added = 0;
-    while (added < days) {
-        d.setDate(d.getDate() + 1);
-        if (d.getDay() !== 0 && d.getDay() !== 6) added += 1;
-    }
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const prefersReducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+function useProductJsonLd(product) {
+    useEffect(() => {
+        const images = (product.images?.length ? product.images : [product.image]).map(absoluteUrl);
+        const data = {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: product.title,
+            image: images,
+            description: product.description,
+            sku: product.sku || undefined,
+            brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
+            offers: {
+                "@type": "Offer",
+                url: window.location.href,
+                priceCurrency: "USD",
+                price: Number(product.price).toFixed(2),
+                itemCondition: "https://schema.org/NewCondition",
+                availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            },
+            ...(product.reviewCount > 0 && {
+                aggregateRating: { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviewCount },
+            }),
+        };
+        const script = document.createElement("script");
+        script.type = "application/ld+json";
+        script.id = "product-jsonld";
+        script.text = JSON.stringify(data);
+        document.head.appendChild(script);
+        return () => script.remove();
+    }, [product]);
 }
 
-function OptionGroup({ legend, options, value, onChange }) {
+function Specs({ product }) {
+    const rows = [...(product.specs || []), ...(product.sku ? [{ label: "SKU", value: product.sku }] : [])];
+    if (!rows.length) return <p className="text-sm text-muted">No specifications listed for this product.</p>;
     return (
-        <fieldset>
-            <legend className="mb-2 text-sm font-semibold">{legend}: <span className="font-normal text-muted">{value}</span></legend>
-            <div className="flex flex-wrap gap-2">
-                {options.map((o) => (
-                    <label key={o} className="cursor-pointer">
-                        <input type="radio" name={legend} value={o} checked={value === o} onChange={() => onChange(o)} className="peer sr-only" />
-                        <span className="block rounded-lg border border-line px-4 py-2 text-sm font-medium peer-checked:border-primary peer-checked:bg-primary-soft peer-checked:text-primary peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary hover:bg-surface-2">
-                            {o}
-                        </span>
-                    </label>
-                ))}
+        <dl className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            {rows.map((s) => (
+                <div key={s.label} className="grid gap-1 px-5 py-3 text-sm sm:grid-cols-[220px_1fr] sm:gap-4">
+                    <dt className="font-semibold">{s.label}</dt>
+                    <dd className="text-muted">{s.value}</dd>
+                </div>
+            ))}
+        </dl>
+    );
+}
+
+function ShippingReturns() {
+    return (
+        <div className="max-w-3xl space-y-5 text-sm">
+            <div>
+                <h3 className="font-bold">Shipping</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
+                    <li>Standard shipping is ${SHIPPING_FLAT.toFixed(2)}, and free on orders of ${FREE_SHIPPING_OVER} or more.</li>
+                    <li>Orders usually arrive within 3-7 business days after payment is confirmed.</li>
+                    <li>Track your order any time from <Link to="/track-order" className="font-semibold text-primary hover:underline">Track order</Link>.</li>
+                </ul>
             </div>
-        </fieldset>
+            <div>
+                <h3 className="font-bold">Returns</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
+                    <li>Return unused items in their original packaging within 30 days of delivery.</li>
+                    <li>Refunds go back to your original payment method once we have inspected the return.</li>
+                </ul>
+            </div>
+            <p className="text-muted">Full details are in our <Link to="/shipping-returns" className="font-semibold text-primary hover:underline">shipping and returns policy</Link>.</p>
+        </div>
     );
 }
 
@@ -50,24 +98,69 @@ function ProductView({ product, onReviewChanged }) {
     const cart = useCart();
     const wishlist = useWishlist();
     const id = String(product._id);
-    const [color, setColor] = useState(product.colors?.[0] || "");
-    const [size, setSize] = useState(product.sizes?.[0] || "");
+    const [color, setColor] = useState("");
+    const [size, setSize] = useState("");
     const [quantity, setQuantity] = useState(1);
+    const [errors, setErrors] = useState({});
+    const [tab, setTab] = useState("description");
+    const ctaRef = useRef(null);
     const related = useFetch(`/products/${id}/related`);
+    const recentIds = useRecentlyViewed(id);
 
     const stock = product.stock ?? 0;
-    const maxQty = Math.max(1, Math.min(stock, 99));
-    const saved = wishlist.has(id);
+    const images = product.images?.length ? product.images : [product.image];
+    const cartSubtotal = cart.items.reduce((sum, i) => sum + (Number(i.price) || 0) * i.quantity, 0);
 
-    function addToCart() {
-        const variant = color || size ? { ...(color && { color }), ...(size && { size }) } : undefined;
-        cart.add({ productId: id, slug: product.slug, title: product.title, image: product.image, price: product.price, ...(variant && { variant }) }, quantity);
+    useProductJsonLd(product);
+
+    function validate() {
+        const next = {};
+        if (product.colors?.length && !color) next.color = "Please choose a colour.";
+        if (product.sizes?.length && !size) next.size = "Please choose a size.";
+        setErrors(next);
+        if (Object.keys(next).length) {
+            requestAnimationFrame(() => document.querySelector("fieldset [role='alert']")?.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" }));
+            return false;
+        }
+        return true;
     }
 
-    const stockBadge =
-        stock === 0 ? <Badge tone="danger">Out of stock</Badge>
-        : stock <= 5 ? <Badge tone="warning">Only {stock} left</Badge>
-        : <Badge tone="success">In stock</Badge>;
+    function addToCart() {
+        if (!validate()) return false;
+        const variant = color || size ? { ...(color && { color }), ...(size && { size }) } : undefined;
+        cart.add({ productId: id, slug: product.slug, title: product.title, image: product.image, price: product.price, ...(variant && { variant }) }, quantity);
+        return true;
+    }
+
+    async function share() {
+        const url = window.location.href;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: product.title, text: `${product.title} at ShopSphere`, url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                toast.success("Link copied to clipboard");
+            }
+        } catch (error) {
+            if (error?.name !== "AbortError") toast.error("Could not share this product.");
+        }
+    }
+
+    function openReviews() {
+        setTab("reviews");
+        requestAnimationFrame(() => document.getElementById("product-tabs")?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" }));
+    }
+
+    const tabs = [
+        { id: "description", label: "Description", panel: <p className="max-w-3xl whitespace-pre-line text-muted">{product.description}</p> },
+        { id: "specs", label: "Specifications", panel: <Specs product={product} /> },
+        { id: "shipping", label: "Shipping & returns", panel: <ShippingReturns /> },
+        {
+            id: "reviews",
+            label: `Reviews${product.reviewCount > 0 ? ` (${product.reviewCount})` : ""}`,
+            panel: <ReviewsSection productId={id} rating={product.rating || 0} reviewCount={product.reviewCount || 0} onChanged={onReviewChanged} />,
+        },
+    ];
 
     return (
         <>
@@ -83,116 +176,30 @@ function ProductView({ product, onReviewChanged }) {
                 </ol>
             </nav>
 
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-                <Gallery images={product.images?.length ? product.images : [product.image]} title={product.title} />
-
-                <div className="min-w-0">
-                    {product.brand && <p className="text-sm font-semibold uppercase tracking-wide text-primary">{product.brand}</p>}
-                    <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">{product.title}</h1>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                        {product.reviewCount > 0 ? (
-                            <a href="#reviews-heading"><StarRating value={product.rating} count={product.reviewCount} size={18} /></a>
-                        ) : (
-                            <span className="text-sm text-muted">No reviews yet</span>
-                        )}
-                        {stockBadge}
-                    </div>
-
-                    <div className="mt-5 flex flex-wrap items-baseline gap-3">
-                        <span className="text-3xl font-extrabold">{formatMoney(product.price)}</span>
-                        {product.compareAtPrice > product.price && (
-                            <>
-                                <span className="text-lg text-muted line-through">{formatMoney(product.compareAtPrice)}</span>
-                                <Badge tone="warning">Save {product.discountPercent}%</Badge>
-                            </>
-                        )}
-                    </div>
-
-                    <p className="mt-5 text-muted">{product.description}</p>
-
-                    <div className="mt-6 space-y-5">
-                        {product.colors?.length > 0 && <OptionGroup legend="Colour" options={product.colors} value={color} onChange={setColor} />}
-                        {product.sizes?.length > 0 && <OptionGroup legend="Size" options={product.sizes} value={size} onChange={setSize} />}
-
-                        <div>
-                            <p id="qty-label" className="mb-2 text-sm font-semibold">Quantity</p>
-                            <div role="group" aria-labelledby="qty-label" className="inline-flex items-center rounded-lg border border-line">
-                                <button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="flex h-11 w-11 items-center justify-center hover:bg-surface-2 disabled:opacity-40">
-                                    <Minus size={16} />
-                                </button>
-                                <span className="w-12 text-center font-semibold" aria-live="polite">{quantity}</span>
-                                <button type="button" aria-label="Increase quantity" disabled={quantity >= maxQty || stock === 0} onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} className="flex h-11 w-11 items-center justify-center hover:bg-surface-2 disabled:opacity-40">
-                                    <Plus size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap gap-3">
-                        <Button
-                            size="lg"
-                            className="flex-1 basis-40"
-                            disabled={stock === 0}
-                            onClick={() => {
-                                addToCart();
-                                toast.success("Added to cart");
-                            }}
-                        >
-                            <ShoppingCart size={18} aria-hidden="true" /> Add to cart
-                        </Button>
-                        <Button
-                            size="lg"
-                            variant="accent"
-                            className="flex-1 basis-40"
-                            disabled={stock === 0}
-                            onClick={() => {
-                                addToCart();
-                                navigate("/checkout");
-                            }}
-                        >
-                            Buy now
-                        </Button>
-                        <Button
-                            size="lg"
-                            variant="outline"
-                            aria-pressed={saved}
-                            aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
-                            onClick={() => wishlist.toggle(id)}
-                        >
-                            <Heart size={18} className={saved ? "fill-danger text-danger" : ""} />
-                        </Button>
-                    </div>
-
-                    <ul className="mt-6 space-y-3 rounded-xl border border-line bg-surface p-4 text-sm">
-                        <li className="flex items-start gap-3"><Truck size={18} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" /><span>Order today and it should arrive between <strong>{addBusinessDays(3)}</strong> and <strong>{addBusinessDays(7)}</strong>. Free shipping over $75.</span></li>
-                        <li className="flex items-start gap-3"><RotateCcw size={18} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" /><span>30-day returns on unused items in original packaging. <Link to="/shipping-returns" className="font-semibold text-primary hover:underline">See policy</Link></span></li>
-                        <li className="flex items-start gap-3"><Lock size={18} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" /><span>Secure checkout. Payments are processed by Stripe.</span></li>
-                    </ul>
-                </div>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
+                <Gallery images={images} title={product.title} alts={product.imageAlts} credits={product.imageCredits} />
+                <BuyBox
+                    product={product}
+                    stock={stock}
+                    color={color}
+                    size={size}
+                    setColor={(v) => { setColor(v); setErrors((e) => ({ ...e, color: undefined })); }}
+                    setSize={(v) => { setSize(v); setErrors((e) => ({ ...e, size: undefined })); }}
+                    quantity={quantity}
+                    setQuantity={setQuantity}
+                    errors={errors}
+                    saved={wishlist.has(id)}
+                    cartSubtotal={cartSubtotal}
+                    ctaRef={ctaRef}
+                    onAdd={() => addToCart() && toast.success("Added to cart")}
+                    onBuyNow={() => addToCart() && navigate("/checkout")}
+                    onToggleWishlist={() => wishlist.toggle(id)}
+                    onShare={share}
+                    onOpenReviews={openReviews}
+                />
             </div>
 
-            {product.specs?.length > 0 && (
-                <section aria-labelledby="specs-heading" className="mt-12">
-                    <h2 id="specs-heading" className="text-2xl font-bold">Specifications</h2>
-                    <dl className="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-                        {product.specs.map((s) => (
-                            <div key={s.label} className="grid gap-1 px-5 py-3 text-sm sm:grid-cols-[220px_1fr] sm:gap-4">
-                                <dt className="font-semibold">{s.label}</dt>
-                                <dd className="text-muted">{s.value}</dd>
-                            </div>
-                        ))}
-                        {product.sku && (
-                            <div className="grid gap-1 px-5 py-3 text-sm sm:grid-cols-[220px_1fr] sm:gap-4">
-                                <dt className="font-semibold">SKU</dt>
-                                <dd className="text-muted">{product.sku}</dd>
-                            </div>
-                        )}
-                    </dl>
-                </section>
-            )}
-
-            <ReviewsSection productId={id} rating={product.rating || 0} reviewCount={product.reviewCount || 0} onChanged={onReviewChanged} />
+            <ProductTabs tabs={tabs} active={tab} onChange={setTab} />
 
             {related.data?.data?.length > 0 && (
                 <section aria-labelledby="related-heading" className="mt-14">
@@ -200,6 +207,10 @@ function ProductView({ product, onReviewChanged }) {
                     <ProductGrid products={related.data.data} />
                 </section>
             )}
+
+            <RecentlyViewed ids={recentIds} />
+
+            <StickyBuyBar title={product.title} price={product.price} disabled={stock === 0} ctaRef={ctaRef} onAdd={() => addToCart() && toast.success("Added to cart")} />
         </>
     );
 }
@@ -224,16 +235,24 @@ export default function ProductPage() {
     if (error) return <ErrorState message={error.message} onRetry={refetch} />;
     if (loading || !product) {
         return (
-            <div className="grid gap-8 lg:grid-cols-2" role="status" aria-label="Loading product">
-                <Skeleton className="aspect-square" />
-                <div className="space-y-4">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-9 w-3/4" />
-                    <Skeleton className="h-6 w-40" />
-                    <Skeleton className="h-10 w-32" />
-                    <Skeleton className="h-24" />
-                    <Skeleton className="h-12" />
+            <div role="status" aria-label="Loading product">
+                <Skeleton className="mb-5 h-4 w-72" />
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
+                    <div>
+                        <Skeleton className="aspect-square w-full" />
+                        <div className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-5">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="aspect-square" />)}</div>
+                    </div>
+                    <div className="space-y-4">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-9 w-3/4" />
+                        <Skeleton className="h-6 w-40" />
+                        <Skeleton className="h-10 w-32" />
+                        <Skeleton className="h-24" />
+                        <Skeleton className="h-11 w-40" />
+                        <Skeleton className="h-12" />
+                    </div>
                 </div>
+                <Skeleton className="mt-12 h-48" />
             </div>
         );
     }

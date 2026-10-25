@@ -14,8 +14,8 @@ const imageUrl = z
     .string()
     .trim()
     .min(1, "Enter an image URL")
-    .max(500)
-    .refine((v) => v.startsWith("/") || /^https?:\/\//i.test(v), "Use a full http(s) URL or a /path from this site");
+    .max(1000)
+    .refine((v) => v.startsWith("https://"), "Use a full https:// image URL");
 
 const optionalNumber = (v) => (v === "" || v == null || Number.isNaN(Number(v)) ? null : Number(v));
 
@@ -27,7 +27,7 @@ const schema = z.object({
     category: z.string().min(1, "Choose a category"),
     brand: z.string().trim().max(80),
     image: imageUrl,
-    extraImages: z.array(z.object({ url: z.string().trim().max(500) })),
+    extraImages: z.array(z.object({ url: z.string().trim().max(1000).refine((v) => v === "" || v.startsWith("https://"), "Use a full https:// image URL") })),
     stock: z.number({ error: "Enter the stock level" }).int("Whole numbers only").min(0).max(1000000),
     sku: z.string().trim().max(60),
     specs: z.array(z.object({ label: z.string().trim().max(60), value: z.string().trim().max(200) })),
@@ -35,7 +35,7 @@ const schema = z.object({
     sizes: z.string().max(300),
     featured: z.boolean(),
     isNew: z.boolean(),
-    status: z.enum(["active", "draft"]),
+    status: z.enum(["active", "draft", "archived"]),
 });
 
 const toList = (text) => [...new Set(text.split(",").map((s) => s.trim()).filter(Boolean))];
@@ -58,7 +58,7 @@ function defaults(product) {
         sizes: (product?.sizes || []).join(", "),
         featured: Boolean(product?.featured),
         isNew: Boolean(product?.isNew),
-        status: product?.status === "draft" ? "draft" : "active",
+        status: ["draft", "archived"].includes(product?.status) ? product.status : "active",
     };
 }
 
@@ -89,6 +89,9 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
             brand: values.brand,
             image: values.image,
             images,
+            // alt text and credits belong to a specific URL: keep them for URLs that stay, blank for new ones
+            imageAlts: images.map((u) => product?.imageAlts?.[product.images?.indexOf(u)] || ""),
+            imageCredits: images.map((u) => product?.imageCredits?.[product.images?.indexOf(u)] || null),
             stock: values.stock,
             sku: values.sku,
             specs: values.specs.filter((s) => s.label && s.value),
@@ -160,7 +163,7 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
 
                 <div className="sm:col-span-2">
                     <div className="flex items-start gap-4">
-                        <Input label="Main image URL" required wrapperClassName="flex-1" placeholder="https://… or /products/example.jpg" error={errors.image?.message} {...register("image")} />
+                        <Input label="Main image URL" required wrapperClassName="flex-1" placeholder="https://images.unsplash.com/…" error={errors.image?.message} {...register("image")} />
                         <LazyImage src={mainImage} alt="Main image preview" className="mt-7 h-16 w-16 shrink-0 rounded-lg border border-line object-cover" />
                     </div>
                 </div>
@@ -172,7 +175,7 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
                             <div key={f.id} className="flex items-center gap-2">
                                 <input
                                     aria-label={`Gallery image ${i + 1} URL`}
-                                    placeholder="https://… or /products/example.jpg"
+                                    placeholder="https://images.unsplash.com/…"
                                     className="h-11 min-w-0 flex-1 rounded-lg border border-line bg-surface px-3.5 text-sm focus:border-primary focus:outline-none"
                                     {...register(`extraImages.${i}.url`)}
                                 />
@@ -207,6 +210,7 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
                 <Select label="Status" error={errors.status?.message} {...register("status")}>
                     <option value="active">Active (visible in the shop)</option>
                     <option value="draft">Draft (hidden)</option>
+                    <option value="archived">Archived (hidden, kept for old orders)</option>
                 </Select>
                 <div className="flex flex-wrap items-end gap-x-6 gap-y-2 pb-2">
                     <Checkbox label="Featured on home page" {...register("featured")} />

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
-import LazyImage from "../ui/LazyImage";
+import ProductImage from "../shop/ProductImage";
 import Skeleton from "../ui/Skeleton";
 import { SectionHeader } from "../ui/PageHeader";
 
@@ -19,9 +19,9 @@ export default function CategoryGrid() {
                         <Link
                             key={c._id}
                             to={`/shop?category=${c.slug}`}
-                            className="group relative block aspect-square overflow-hidden rounded-xl border border-line bg-surface-2"
+                            className="group relative block aspect-square overflow-hidden rounded-xl border border-line bg-surface-2 transition-shadow hover:shadow-lg"
                         >
-                            <LazyImage src={c.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                            <ProductImage src={c.image} alt="" sizes="(min-width:1024px) 16vw, (min-width:768px) 30vw, 50vw" className="transition-transform duration-500 group-hover:scale-105 motion-reduce:group-hover:scale-100" />
                             <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-3 pt-10 text-white">
                                 <span className="block text-sm font-bold">{c.name}</span>
                                 <span className="block text-xs opacity-85">{c.productCount} products</span>

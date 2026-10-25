@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { BadgeCheck } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { BadgeCheck, ThumbsUp } from "lucide-react";
 import toast from "react-hot-toast";
 import useFetch from "../../hooks/useFetch";
 import useAuth from "../../hooks/useAuth";
 import { api, errorMessage } from "../../lib/api";
 import { formatDate } from "../../lib/format";
 import Button from "../ui/Button";
-import { Input, Textarea } from "../ui/Input";
+import { Input, Select, Textarea } from "../ui/Input";
 import Pagination from "../ui/Pagination";
 import StarRating, { RatingInput } from "../ui/StarRating";
 import Skeleton from "../ui/Skeleton";
@@ -55,14 +55,19 @@ function ReviewForm({ productId, onDone }) {
 
 export default function ReviewsSection({ productId, rating, reviewCount, onChanged }) {
     const [page, setPage] = useState(1);
-    const { isPending } = useAuth();
+    const [sort, setSort] = useState("newest");
+    const [votes, setVotes] = useState({}); // reviewId -> { helpfulCount, viewerVoted } after the viewer clicked
+    const [voting, setVoting] = useState(null);
+    const { isPending, isLoggedIn } = useAuth();
     const location = useLocation();
-    const reviews = useFetch(`/products/${productId}/reviews`, { params: { page, limit: 6 } });
+    const navigate = useNavigate();
+    const reviews = useFetch(`/products/${productId}/reviews`, { params: { page, limit: 6, sort }, enabled: !isPending });
     const eligibility = useFetch(`/products/${productId}/reviews/eligibility`, { enabled: !isPending });
     const el = eligibility.data?.data;
     const list = reviews.data?.data || [];
     const dist = reviews.data?.distribution || {};
     const pagination = reviews.data?.pagination;
+    const summary = reviews.data?.summary || { average: rating, count: reviewCount };
 
     function reload() {
         reviews.refetch();
@@ -70,18 +75,35 @@ export default function ReviewsSection({ productId, rating, reviewCount, onChang
         onChanged?.();
     }
 
+    async function toggleHelpful(review) {
+        if (!isLoggedIn) {
+            toast("Sign in to mark reviews as helpful.");
+            navigate("/login", { state: { from: location } });
+            return;
+        }
+        setVoting(review._id);
+        try {
+            const res = await api.post(`/reviews/${review._id}/helpful`);
+            setVotes((v) => ({ ...v, [review._id]: res.data }));
+        } catch (err) {
+            toast.error(errorMessage(err));
+        } finally {
+            setVoting(null);
+        }
+    }
+
     return (
-        <section aria-labelledby="reviews-heading" className="mt-14">
+        <section aria-labelledby="reviews-heading">
             <h2 id="reviews-heading" className="text-2xl font-bold">Customer reviews</h2>
 
-            <div className="mt-6 grid gap-8 lg:grid-cols-[320px_1fr]">
+            <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
                 <div className="space-y-6">
                     <div className="rounded-xl border border-line bg-surface p-5">
-                        {reviewCount > 0 ? (
+                        {summary.count > 0 ? (
                             <>
-                                <p className="text-4xl font-extrabold">{rating.toFixed(1)}<span className="text-lg font-semibold text-muted"> / 5</span></p>
-                                <StarRating value={rating} size={20} className="mt-1" />
-                                <p className="mt-1 text-sm text-muted">Based on {reviewCount} verified {reviewCount === 1 ? "review" : "reviews"}</p>
+                                <p className="text-4xl font-extrabold">{Number(summary.average).toFixed(1)}<span className="text-lg font-semibold text-muted"> / 5</span></p>
+                                <StarRating value={summary.average} size={20} className="mt-1" />
+                                <p className="mt-1 text-sm text-muted">Based on {summary.count} verified {summary.count === 1 ? "review" : "reviews"}</p>
                                 <ul className="mt-4 space-y-2" aria-label="Rating breakdown">
                                     {[5, 4, 3, 2, 1].map((n) => {
                                         const count = dist[n] || 0;
@@ -89,7 +111,7 @@ export default function ReviewsSection({ productId, rating, reviewCount, onChang
                                             <li key={n} className="flex items-center gap-3 text-sm">
                                                 <span className="w-12 shrink-0 text-muted">{n} star</span>
                                                 <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
-                                                    <span className="block h-full rounded-full bg-accent" style={{ width: `${reviewCount ? (count / reviewCount) * 100 : 0}%` }} />
+                                                    <span className="block h-full rounded-full bg-accent" style={{ width: `${summary.count ? (count / summary.count) * 100 : 0}%` }} />
                                                 </span>
                                                 <span className="w-6 text-right text-muted">{count}</span>
                                             </li>
@@ -117,7 +139,27 @@ export default function ReviewsSection({ productId, rating, reviewCount, onChang
                     ) : null}
                 </div>
 
-                <div>
+                <div className="min-w-0">
+                    {summary.count > 1 && (
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <p className="text-sm text-muted" aria-live="polite">Showing {list.length} of {pagination?.total ?? summary.count}</p>
+                            <Select
+                                label="Sort reviews"
+                                wrapperClassName="w-44 [&>label]:sr-only"
+                                value={sort}
+                                onChange={(e) => {
+                                    setSort(e.target.value);
+                                    setPage(1);
+                                }}
+                            >
+                                <option value="newest">Newest</option>
+                                <option value="highest">Highest rated</option>
+                                <option value="lowest">Lowest rated</option>
+                                <option value="helpful">Most helpful</option>
+                            </Select>
+                        </div>
+                    )}
+
                     {reviews.loading && !list.length ? (
                         <div className="space-y-4">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28" />)}</div>
                     ) : reviews.error ? (
@@ -126,21 +168,36 @@ export default function ReviewsSection({ productId, rating, reviewCount, onChang
                         <p className="text-sm text-muted">Nothing here yet.</p>
                     ) : (
                         <>
-                            <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
-                                {list.map((r) => (
-                                    <li key={r._id} className="p-5">
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                            <StarRating value={r.rating} />
-                                            {r.title && <h3 className="font-semibold">{r.title}</h3>}
-                                        </div>
-                                        <p className="mt-2 text-sm">{r.comment}</p>
-                                        <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
-                                            <span className="font-semibold text-fg">{r.userName}</span>
-                                            {r.verifiedPurchase && <span className="inline-flex items-center gap-1 text-primary"><BadgeCheck size={13} aria-hidden="true" />Verified purchase</span>}
-                                            <span>{formatDate(r.createdAt)}</span>
-                                        </p>
-                                    </li>
-                                ))}
+                            <ul className={`divide-y divide-line rounded-xl border border-line bg-surface ${reviews.loading ? "opacity-60" : ""}`}>
+                                {list.map((r) => {
+                                    const vote = votes[r._id] || { helpfulCount: r.helpfulCount || 0, viewerVoted: r.viewerVoted };
+                                    return (
+                                        <li key={r._id} className="p-5">
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                <StarRating value={r.rating} />
+                                                {r.title && <h3 className="font-semibold">{r.title}</h3>}
+                                            </div>
+                                            <p className="mt-2 break-words text-sm">{r.comment}</p>
+                                            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                                                <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                                                    <span className="font-semibold text-fg">{r.userName}</span>
+                                                    {r.verifiedPurchase && <span className="inline-flex items-center gap-1 text-primary"><BadgeCheck size={13} aria-hidden="true" />Verified purchase</span>}
+                                                    <span>{formatDate(r.createdAt)}</span>
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    aria-pressed={Boolean(vote.viewerVoted)}
+                                                    disabled={voting === r._id}
+                                                    onClick={() => toggleHelpful(r)}
+                                                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:opacity-60 ${vote.viewerVoted ? "border-primary bg-primary-soft text-primary" : "border-line hover:bg-surface-2"}`}
+                                                >
+                                                    <ThumbsUp size={13} aria-hidden="true" className={vote.viewerVoted ? "fill-current" : ""} />
+                                                    Helpful{vote.helpfulCount > 0 ? ` (${vote.helpfulCount})` : ""}
+                                                </button>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                             <Pagination className="mt-6" page={pagination?.page || 1} pages={pagination?.pages || 1} onChange={setPage} />
                         </>

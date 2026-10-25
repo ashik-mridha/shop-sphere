@@ -24,7 +24,7 @@ export default function DealsBanner() {
     }
 
     return (
-        <section aria-label="Promo codes" className="rounded-2xl bg-primary-soft p-5 sm:p-7">
+        <section aria-label="Promo codes" className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary-soft via-primary-soft to-accent-soft p-5 sm:p-8">
             <h2 className="flex items-center gap-2 text-xl font-bold text-primary">
                 <Ticket size={22} aria-hidden="true" /> Promo codes you can use today
             </h2>

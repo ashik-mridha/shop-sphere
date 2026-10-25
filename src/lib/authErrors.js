@@ -1,5 +1,6 @@
 const BY_CODE = {
-    INVALID_EMAIL_OR_PASSWORD: "Incorrect email or password. Check your details and try again.",
+    // Same sentence for unknown email, wrong password and Google-only accounts, so it does not reveal which emails exist.
+    INVALID_EMAIL_OR_PASSWORD: "Incorrect email or password. If you created your account with Google, use \u201cContinue with Google\u201d instead.",
     USER_ALREADY_EXISTS: "An account with this email already exists. Try signing in instead.",
     USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "An account with this email already exists. Try signing in instead.",
     PASSWORD_TOO_SHORT: "Your password must be at least 8 characters.",
@@ -30,5 +31,8 @@ export function googleErrorMessage(code) {
     if (!code) return null;
     if (/access_denied|cancel/i.test(code)) return "Google sign-in was cancelled.";
     if (/banned|blocked/i.test(code)) return "This account has been blocked.";
+    if (/state_mismatch|please_restart_the_process/i.test(code)) {
+        return "Google sign-in could not be completed because your browser did not keep the sign-in session. Please try again; if it keeps happening, allow cookies for this site or use your email and password.";
+    }
     return "Google sign-in failed. Please try again, or use your email and password.";
 }

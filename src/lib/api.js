@@ -1,4 +1,5 @@
 import { API_URL } from "./config";
+import { clearFetchCache } from "./fetchCache";
 
 export class ApiError extends Error {
     constructor(message, status, details) {
@@ -47,6 +48,7 @@ async function request(method, path, { body, params, signal } = {}) {
     if (!response.ok) {
         throw new ApiError(json?.message || `Request failed (${response.status})`, response.status, json?.details);
     }
+    if (method !== "GET") clearFetchCache(); // a write may change catalogue data
     return json;
 }
 

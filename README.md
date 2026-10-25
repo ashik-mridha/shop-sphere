@@ -55,3 +55,22 @@ src/
 - The cart lives in `localStorage` for guests; **every price is recomputed on the server** at cart and checkout time.
 - Wishlist, addresses, reviews and orders live in MongoDB behind login.
 - Payments use Stripe Checkout (hosted page). Card data never touches this app or the API.
+
+## Product photos
+
+All product and category data comes from the API; the frontend contains no product data. Photos are external `https` URLs stored in MongoDB (`image`, `images`, `imageAlts`, `imageCredits`) and rendered with `loading="lazy"`, `decoding="async"` and `referrerPolicy="no-referrer"` (Flickr hotlinking). Unsplash and Flickr URLs are resized by the UI (`?w=` / `_z`, see `src/lib/images.js`); a photo that fails to load is replaced by a neutral tile showing the product name.
+
+### Image credits
+Unsplash photos are free for commercial use and need no attribution. The photos below need attribution; it is shown under the product gallery.
+
+| Product | Photographer | License | Source |
+|---|---|---|---|
+| Mechanical Keyboard K8 | phithanhviet | CC BY 2.0 | https://www.flickr.com/photos/99146016@N07/52309562776 |
+| Brew Master Pour-Over Kettle | markolaz | CC BY 2.0 | https://www.flickr.com/photos/195403219@N08/52139170224 |
+| Brew Master Pour-Over Kettle | markolaz | CC BY 2.0 | https://www.flickr.com/photos/195403219@N08/52139569650 |
+| Brew Master Pour-Over Kettle | markolaz | CC BY 2.0 | https://www.flickr.com/photos/195403219@N08/52135222918 |
+| Bamboo Cutting Board | ela haney | CC0 | https://stocksnap.io/photo/wooden-chopping-IJQN8ZVH8M |
+| Bamboo Cutting Board | nenadstojkovicart | CC BY 2.0 | https://www.flickr.com/photos/202846129@N03/54536057307 |
+| Compact Air Fryer 4 L | Haydn Blackey | CC BY-SA 2.0 | https://www.flickr.com/photos/54549113@N00/54005130467 |
+
+If a photo URL stops working, replace it from the admin product form (or edit `seed-data/products.json` and re-run `npm run catalog:import`).

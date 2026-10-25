@@ -20,7 +20,7 @@ import LazyImage from "../../components/ui/LazyImage";
 const schema = z.object({
     name: z.string().trim().min(2, "Name must be at least 2 characters").max(60, "Max 60 characters"),
     description: z.string().trim().max(300, "Max 300 characters"),
-    image: z.string().trim().max(500, "Max 500 characters"),
+    image: z.string().trim().max(1000, "Max 1000 characters").refine((v) => v === "" || v.startsWith("https://"), "Use a full https:// image URL"),
 });
 
 function CategoryFormModal({ category, onClose, onSaved }) {
@@ -64,7 +64,7 @@ function CategoryFormModal({ category, onClose, onSaved }) {
                 <Textarea label="Description" rows={3} error={errors.description?.message} {...register("description")} />
                 <Input
                     label="Image URL"
-                    hint="A path like /products/example.jpg or a full https:// URL"
+                    hint="A full https:// image URL"
                     error={errors.image?.message}
                     {...register("image")}
                 />

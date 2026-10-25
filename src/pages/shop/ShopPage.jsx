@@ -128,7 +128,7 @@ export default function ShopPage() {
                     </div>
 
                     {error ? (
-                        <ErrorState message={error.message} onRetry={refetch} />
+                        <ErrorState title="Could not load products" message={error.message} onRetry={refetch} />
                     ) : loading && !products.length ? (
                         <ProductGridSkeleton count={8} />
                     ) : products.length === 0 ? (

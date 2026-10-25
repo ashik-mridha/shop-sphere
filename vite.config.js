@@ -5,6 +5,14 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
 
+  if (mode === "production" && env.VITE_API_URL) {
+    console.warn(
+      `\n[shopsphere] VITE_API_URL is set (${env.VITE_API_URL}) so the browser will call the API cross-site. ` +
+        "Auth cookies become third-party and Google login can fail with state_mismatch. " +
+        "Unset VITE_API_URL in production and keep the /api rewrite in vercel.json.\n"
+    );
+  }
+
   return {
     plugins: [react(), tailwindcss()],
     server: {
