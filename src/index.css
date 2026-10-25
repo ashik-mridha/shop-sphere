@@ -74,7 +74,6 @@ body {
     background-color: var(--bg);
     color: var(--fg);
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
 }
 
 /* Keyboard focus ring for everything interactive */
